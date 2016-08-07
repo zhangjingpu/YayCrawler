@@ -14,7 +14,7 @@ import yaycrawler.admin.quartz.CrawlerRequestJob;
 import yaycrawler.admin.service.CrawlerResultRetrivalService;
 import yaycrawler.admin.service.TaskService;
 import yaycrawler.common.model.CrawlerRequest;
-import yaycrawler.common.model.TasksResult;
+import yaycrawler.common.model.QueueQueryParam;
 import yaycrawler.common.utils.UrlUtils;
 import yaycrawler.quartz.model.ScheduleJobInfo;
 import yaycrawler.quartz.service.QuartzScheduleService;
@@ -132,7 +132,7 @@ public class TaskController {
     @RequestMapping("/itemQueueManagement")
     public ModelAndView itemQueueManagement() {
         ModelAndView modelAndView = new ModelAndView("itemqueue_management");
-        modelAndView.addObject("queue", "item");
+        modelAndView.addObject("queue", "waiting");
         return modelAndView;
     }
 
@@ -146,17 +146,17 @@ public class TaskController {
 
     @RequestMapping("/queryQueueByName")
     @ResponseBody
-    public Object queryQueueByName(TasksResult tasksResult) {
+    public Object queryQueueByName(QueueQueryParam queryParam) {
         Object data = null;
-        String name = tasksResult.getName();
+        String name = queryParam.getName();
         if (StringUtils.equalsIgnoreCase(name, "fail")) {
-            data = masterActor.retrievedFailQueueRegistrations(tasksResult);
+            data = masterActor.retrievedFailQueueRegistrations(queryParam);
         } else if (StringUtils.equalsIgnoreCase(name, "success")) {
-            data = masterActor.retrievedSuccessQueueRegistrations(tasksResult);
-        } else if (StringUtils.equalsIgnoreCase(name, "item")) {
-            data = masterActor.retrievedItemQueueRegistrations(tasksResult);
+            data = masterActor.retrievedSuccessQueueRegistrations(queryParam);
+        } else if (StringUtils.equalsIgnoreCase(name, "waiting")) {
+            data = masterActor.retrievedWaitingQueueRegistrations(queryParam);
         } else if (StringUtils.equalsIgnoreCase(name, "running")) {
-            data = masterActor.retrievedRunningQueueRegistrations(tasksResult);
+            data = masterActor.retrievedRunningQueueRegistrations(queryParam);
         }
         return data;
     }

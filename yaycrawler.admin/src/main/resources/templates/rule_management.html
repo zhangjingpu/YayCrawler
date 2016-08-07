@@ -533,17 +533,19 @@
                                                             field: 'action',
                                                             title: '操作',
                                                             formatter: function (value, row, index) {
-                                                                return [
+                                                                var items= [
                                                                     '<a  href="javascript:void(0)" class="testRule btn btn-sm purple" title="测试规则">',
                                                                     '<i class="fa fa-file-o">测试</i>',
                                                                     '</a>',
                                                                     '<a  href="javascript:void(0)" class="deleteRule btn btn-sm red" title="删除规则">',
                                                                     '<i class="fa fa-times">删除</i>',
-                                                                    '</a>',
-                                                                    '<a  href="javascript:void(0)" class="addUrlParam btn btn-sm yellow" title="添加请求参数">',
-                                                                    '<i class="fa fa-plus">参数</i>',
-                                                                    '</a>',
-                                                                ].join('');
+                                                                    '</a>'
+                                                                ];
+                                                                if(!row.fieldName)
+                                                                    items.push( '<a  href="javascript:void(0)" class="addUrlParam btn btn-sm yellow" title="添加请求参数">'+
+                                                                            '<i class="fa fa-plus">参数</i>'+
+                                                                            '</a>');
+                                                                return items.join('');
                                                             },
                                                             events: {
                                                                 'click .addUrlParam': function (e, value, row, index) {

@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import yaycrawler.common.model.CrawlerRequest;
+import yaycrawler.common.model.QueueQueryParam;
 import yaycrawler.common.model.RestFulResult;
-import yaycrawler.common.model.TasksResult;
 import yaycrawler.master.model.MasterContext;
-import yaycrawler.master.service.CrawlerQueueService;
+import yaycrawler.master.service.ICrawlerQueueService;
 
 import java.util.List;
 
@@ -22,13 +22,13 @@ import java.util.List;
 public class AdminController {
 
     @Autowired
-    private CrawlerQueueService crawlerQueueService;
+    private ICrawlerQueueService crawlerQueueService;
 
     @RequestMapping("/registerQueues")
     @ResponseBody
     public RestFulResult acceptAdminTask(@RequestBody List<CrawlerRequest> crawlerRequests)
     {
-        Boolean flag = crawlerQueueService.regeditTaskToItemQueue(crawlerRequests,true);
+        Boolean flag = crawlerQueueService.pushTasksToWaitingQueue(crawlerRequests,true);
         if(flag)
             return RestFulResult.success(flag);
         else
@@ -44,30 +44,30 @@ public class AdminController {
 
     @RequestMapping(value = "/retrievedSuccessQueueRegistrations",method = RequestMethod.POST)
     @ResponseBody
-    public RestFulResult retrievedSuccessQueueRegistrations(@RequestBody TasksResult tasksResult)
+    public RestFulResult retrievedSuccessQueueRegistrations(@RequestBody QueueQueryParam queryParam)
     {
-        return RestFulResult.success(crawlerQueueService.queryQueues(tasksResult));
+        return RestFulResult.success(crawlerQueueService.querySuccessQueues(queryParam));
     }
 
     @RequestMapping(value = "/retrievedFailQueueRegistrations",method = RequestMethod.POST)
     @ResponseBody
-    public RestFulResult retrievedFailQueueRegistrations(@RequestBody TasksResult tasksResult)
+    public RestFulResult retrievedFailQueueRegistrations(@RequestBody QueueQueryParam queryParam)
     {
-        return RestFulResult.success(crawlerQueueService.queryQueues(tasksResult));
+        return RestFulResult.success(crawlerQueueService.queryFailQueues(queryParam));
     }
 
     @RequestMapping(value = "/retrievedRunningQueueRegistrations",method = RequestMethod.POST)
     @ResponseBody
-    public RestFulResult retrievedRunningQueueRegistrations(@RequestBody TasksResult tasksResult)
+    public RestFulResult retrievedRunningQueueRegistrations(@RequestBody QueueQueryParam queryParam)
     {
-        return RestFulResult.success(crawlerQueueService.queryQueues(tasksResult));
+        return RestFulResult.success(crawlerQueueService.queryRunningQueues(queryParam));
     }
 
-    @RequestMapping(value = "/retrievedItemQueueRegistrations",method = RequestMethod.POST)
+    @RequestMapping(value = "/retrievedWaitingQueueRegistrations",method = RequestMethod.POST)
     @ResponseBody
-    public RestFulResult retrievedItemQueueRegistrations(@RequestBody TasksResult tasksResult)
+    public RestFulResult retrievedWaitingQueueRegistrations(@RequestBody QueueQueryParam queryParam)
     {
-        return RestFulResult.success(crawlerQueueService.queryQueues(tasksResult));
+        return RestFulResult.success(crawlerQueueService.queryWaitingQueues(queryParam));
     }
 
 }

@@ -11,7 +11,7 @@ import yaycrawler.common.model.WorkerHeartbeat;
 import yaycrawler.common.model.WorkerRegistration;
 import yaycrawler.master.communication.WorkerActor;
 import yaycrawler.master.model.MasterContext;
-import yaycrawler.master.service.CrawlerQueueService;
+import yaycrawler.master.service.ICrawlerQueueService;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +30,7 @@ public class CrawlerTaskDispatcher {
 
 
     @Autowired
-    private CrawlerQueueService queueService;
+    private ICrawlerQueueService queueService;
 
     @Autowired
     private WorkerActor workerActor;
@@ -39,10 +39,10 @@ public class CrawlerTaskDispatcher {
         if(crawlerResult==null) return;
         if (crawlerResult.isSuccess()) {
             if (crawlerResult.getCrawlerRequestList().size() > 0)
-                queueService.regeditTaskToItemQueue(crawlerResult.getCrawlerRequestList(), false);
-            queueService.removeSuccessedTaskFromRunningQueue(crawlerResult);
+                queueService.pushTasksToWaitingQueue(crawlerResult.getCrawlerRequestList(), false);
+            queueService.moveRunningTaskToSuccessQueue(crawlerResult.getKey());
         } else {
-            queueService.moveToFailQueue(crawlerResult.getKey(), crawlerResult.getMessage());
+            queueService.moveRunningTaskToFailQueue(crawlerResult.getKey(), crawlerResult.getMessage());
         }
     }
 
@@ -61,12 +61,12 @@ public class CrawlerTaskDispatcher {
         logger.info("worker:{}剩余任务数:{}", workerHeartbeat.getWorkerId(), workerHeartbeat.getWaitTaskCount());
         int canAssignCount = batchSize - workerHeartbeat.getWaitTaskCount();
         if (canAssignCount <= 0) return;
-        List<CrawlerRequest> crawlerRequests = queueService.fetchTasksFromItemQueue(canAssignCount);
+        List<CrawlerRequest> crawlerRequests = queueService.fetchTasksFromWaitingQueue(canAssignCount);
         if (crawlerRequests.size() == 0) return;
         boolean flag = workerActor.assignTasks(workerRegistration, crawlerRequests);
         if (flag) {
             logger.info("给worker:{}分派了{}个任务", workerHeartbeat.getWorkerId(), crawlerRequests.size());
-            queueService.moveTaskToRunningQueue(workerHeartbeat, crawlerRequests);
+            queueService.moveWaitingTaskToRunningQueue(workerHeartbeat.getWorkerId(), crawlerRequests);
         }
     }
 

@@ -2,14 +2,14 @@ package yaycrawler.master.quartz;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import yaycrawler.master.service.CrawlerQueueService;
+import yaycrawler.master.service.ICrawlerQueueService;
 
 /**
  * Created by ucs_yuananyun on 2016/5/31.
  */
 public class BreakedQueueRefreshTask {
     private static final Logger logger = LoggerFactory.getLogger(BreakedQueueRefreshTask.class);
-    private CrawlerQueueService queueService;
+    private ICrawlerQueueService queueService;
     private Long queueTimeOut;
 
     public void refreshBreakedQueue() {
@@ -21,7 +21,7 @@ public class BreakedQueueRefreshTask {
         this.queueTimeOut = queueTimeOut;
     }
 
-    public void setQueueService(CrawlerQueueService queueService) {
+    public void setQueueService(ICrawlerQueueService queueService) {
         this.queueService = queueService;
     }
 }

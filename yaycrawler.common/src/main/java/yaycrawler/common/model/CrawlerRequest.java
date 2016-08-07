@@ -96,4 +96,5 @@ public class CrawlerRequest implements Serializable{
                 ", method='" + method + '\'' +
                 '}';
     }
+
 }

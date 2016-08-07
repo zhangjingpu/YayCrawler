@@ -39,8 +39,8 @@
                     }, {
                         field: 'startTime',
                         title: '任务运行时间',
-                        formatter:function(value,row,index) {
-                            debugger
+                        formatter: function (value, row, index) {
+                            if(!row.extendMap) return "未知";
                             var timestamp = row.extendMap.startTime;
                             var d = new Date(timestamp);    //根据时间戳生成的时间对象
                             var date = (d.getFullYear()) + "-" +
@@ -51,22 +51,27 @@
                                     (d.getSeconds());
                             return date;
                         }
-                    },{
+                    }, {
                         field: 'url',
                         title: '请求URL'
-                    },{
-                        field: 'param',
-                        title: '请求参数'
-                    },{
-                        field: 'workerId',
-                        title: 'workerId',
-                        formatter:function(value,row,index) {
-                            return row.extendMap.workId;
+                    }, {
+                        field: 'data',
+                        title: '请求参数',
+                        formatter: function (value, row, index) {
+                            return JSON.stringify(row.data);
                         }
-                    } ,{
-                        field: 'hashCode',
-                        title: '任务标志'
-                    }]
+                    }
+//                        {
+//                            field: 'workerId',
+//                            title: 'workerId',
+//                            formatter: function (value, row, index) {
+//                                return row.extendMap.workId;
+//                            }
+//                        }
+                        , {
+                            field: 'hashCode',
+                            title: '任务标志'
+                        }]
                 }));
             };
             return oTableInit;

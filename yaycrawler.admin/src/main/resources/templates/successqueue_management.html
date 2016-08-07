@@ -65,15 +65,19 @@
                                     title: '请求方法'
                                 },
                                 {
-                                    field: 'param',
-                                    title: '请求参数'
-                                }, {
-                                    field: 'workerId',
-                                    title: '处理的Worker编号',
+                                    field: 'data',
+                                    title: '请求参数',
                                     formatter: function (value, row, index) {
-                                        return row.extendMap.workId;
+                                        return JSON.stringify(row.data);
                                     }
                                 },
+//                                {
+//                                    field: 'workerId',
+//                                    title: '处理的Worker编号',
+//                                    formatter: function (value, row, index) {
+//                                        return row.extendMap.workId;
+//                                    }
+//                                },
                                 {
                                     field: 'startTime',
                                     title: '任务完成时间',
@@ -113,20 +117,20 @@
                                                 dataType: 'json',
                                                 async: false,
                                                 success: function (result) {     //回调函数，result，返回值
-                                                    debugger
-                                                    var resultReq = row.extendMap.result;
-                                                    if (resultReq.crawlerRequestList.length > 0) {
-                                                        result.resultReq = resultReq;
-                                                    }
+//                                                    debugger
+//                                                    var resultReq = row.extendMap.result;
+//                                                    if (resultReq.crawlerRequestList.length > 0) {
+//                                                        result.resultReq = resultReq;
+//                                                    }
                                                     $("#ta_result").val(JSON.stringify(result, null, "\t"));
                                                 },
                                                 error: function (msg) {
                                                     debugger
-                                                    var resultReq = row.extendMap.result;
-                                                    if (resultReq.crawlerRequestList.length > 0) {
-                                                        $("#ta_result").val(JSON.stringify(resultReq, null, "\t"));
-                                                    }
-
+                                                    $("#ta_result").val("查询出现异常！");
+//                                                    var resultReq = row.extendMap.result;
+//                                                    if (resultReq.crawlerRequestList.length > 0) {
+//                                                        $("#ta_result").val(JSON.stringify(resultReq, null, "\t"));
+//                                                    }
                                                 }
                                             });
 

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
 
 /**
@@ -36,27 +37,28 @@ public class MasterActor {
         logger.info("worker-{}开始向Master申请注册", WorkerContext.getWorkerId());
         WorkerRegistration workerRegistration = new WorkerRegistration(WorkerContext.getWorkerId(), WorkerContext.getContextPath());
         workerRegistration.setHeartbeatInteval(WorkerContext.getHeartbeatInteval());
-
         String targetUrl = CommunicationAPIs.getFullRemoteUrl(WorkerContext.getMasterServerAddress(), CommunicationAPIs.WORKER_POST_MASTER_REGISTER);
         RestFulResult result = HttpUtils.doSignedHttpExecute(WorkerContext.getSignatureSecret(), targetUrl, HttpMethod.POST, workerRegistration);
         if (result.hasError()) {
             logger.error("worker-{}注册Master失败,原因:{}", WorkerContext.getWorkerId(),result.getMessage());
-//            throw new WorkerRegisteFailureException(result.getMessage());
             return false;
         }
         logger.info("worker-{}向Master注册成功！", WorkerContext.getWorkerId());
         return true;
     }
 
+    /**
+     * Worker向Master发送心跳
+     * @return
+     */
     public boolean sendHeartbeart() {
-//        if (!WorkerContext.isSuccessRegisted) return false;
         logger.debug("worker-{}开始向Master发送心跳", WorkerContext.getWorkerId());
         WorkerHeartbeat heartbeat = new WorkerHeartbeat(WorkerContext.getWorkerId());
         heartbeat.setWorkerContextPath(WorkerContext.getContextPath());
         heartbeat.setHeartbeatInteval(WorkerContext.getHeartbeatInteval());
 
         //收集已经完成的任务，然后汇报给Master
-        Set<Map.Entry<String, CrawlerResult>> completedResultSet = WorkerContext.completedResultMap.entrySet();
+        Set<Map.Entry<String, CrawlerResult>> completedResultSet = new CopyOnWriteArraySet<>(WorkerContext.completedResultMap.entrySet());
         List<CrawlerResult> completedCrawlerResultList = new ArrayList<>(completedResultSet.size());
         completedCrawlerResultList.addAll(completedResultSet.stream().map(Map.Entry<String, CrawlerResult>::getValue).collect(Collectors.toList()));
         heartbeat.setCompletedCrawlerResultList(completedCrawlerResultList);
@@ -103,6 +105,11 @@ public class MasterActor {
     }
 
 
+    /**
+     * Worker通知Master任务执行失败
+     * @param crawlerResult
+     * @return
+     */
     public boolean notifyTaskFailure(CrawlerResult crawlerResult) {
         logger.debug("任务{}执行失败，现在通知Master……", crawlerResult.getKey());
         String targetUrl = CommunicationAPIs.getFullRemoteUrl(WorkerContext.getMasterServerAddress(), CommunicationAPIs.WORKER_POST_MASTER_FAILURE_NOTIFY);
