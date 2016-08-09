@@ -130,6 +130,49 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.4.11</version>
+                <executions>
+                    <execution>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>tag</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dockerHost>https://192.168.99.100:2376</dockerHost>
+                    <imageName>yaycrawler.****.com/demo:${project.artifactId}</imageName>
+                    <baseImage>docker.io/java:latest</baseImage>
+                    <registryUrl></registryUrl>
+                    <env>
+                        <TZ>'Asia/Shanghai'</TZ>
+                        <LC_ALL>en_US.UTF-8</LC_ALL>
+                    </env>
+                    <resources>
+                        <resource>
+                            <targetPath>/</targetPath>
+                            <directory>${project.build.directory}</directory>
+                            <include>${project.build.finalName}.jar</include>
+                        </resource>
+                        <!--<resource>-->
+                        <!--<targetPath>/web</targetPath>-->
+                        <!--<directory>${project.build.directory}/web</directory>-->
+                        <!--</resource>-->
+                    </resources>
+                    <exposes>
+                        <expose>8080</expose>
+                    </exposes>
+                    <cmd>["java", "-jar", "/${project.build.finalName}.jar"]</cmd>
+                    <image>registry.****.com/demo:${project.artifactId}</image>
+                    <newName>registry.****.com/demo</newName>
+                    <forceTags>true</forceTags>
+                    <pushImage>false</pushImage>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

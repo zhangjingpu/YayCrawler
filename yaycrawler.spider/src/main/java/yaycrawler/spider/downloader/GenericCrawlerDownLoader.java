@@ -41,6 +41,9 @@ public class GenericCrawlerDownLoader extends AbstractDownloader {
     @Override
     public Page download(Request request, Task task) {
         PageInfo pageInfo = pageParserRuleService.findOnePageInfoByRgx(request.getUrl());
+        if(pageInfo == null && request.getExtra("$pageInfo") != null) {
+            pageInfo = (PageInfo) request.getExtra("$pageInfo");
+        }
         boolean isJsRendering = pageInfo != null && "1".equals(pageInfo.getIsJsRendering());
         SiteCookie siteCookie = pageCookieService.getCookieByUrl(request.getUrl());
         String cookie =null;

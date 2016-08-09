@@ -73,6 +73,9 @@ public class ConfigSpiderService {
         String targetUrl = pageInfo.getPageUrl();
         Map<String, Object> paramsMap = pageInfo.getParamsMap();
         Request request = RequestHelper.createRequest(targetUrl, pageInfo.getMethod(), paramsMap);
+        if(pageInfo != null) {
+            request.putExtra("$pageInfo",pageInfo);
+        }
         Page page = downloadPage(request, null);
         if (page == null) return RestFulResult.failure("页面下载失败！");
         pageProcessor.process(page);

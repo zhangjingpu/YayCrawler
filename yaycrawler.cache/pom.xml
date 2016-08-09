@@ -28,9 +28,9 @@
             <version>15.0</version>
         </dependency>
         <dependency>
-            <groupId>develop_lib.org.springframework</groupId>
+            <groupId>org.springframework</groupId>
             <artifactId>spring-aop</artifactId>
-            <version>4.2.4.RELEASE</version>
+            <version>4.2.5.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>org.aspectj</groupId>

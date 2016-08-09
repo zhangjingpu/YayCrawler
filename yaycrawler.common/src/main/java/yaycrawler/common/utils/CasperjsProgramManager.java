@@ -29,7 +29,7 @@ public class CasperjsProgramManager {
         }
         try {
             semaphore.acquire();
-            if(pageCharset==null) pageCharset = "utf8";
+            if(pageCharset==null) pageCharset = "utf-8";
             String path = CasperjsProgramManager.class.getResource("/").getPath();
             path = path.substring(1, path.lastIndexOf("/") + 1);
             String os = System.getProperties().getProperty("os.name");
