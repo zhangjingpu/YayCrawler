@@ -17,6 +17,10 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aop</artifactId>
+        </dependency>
+        <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <scope>runtime</scope>
@@ -24,7 +28,12 @@
         <dependency>
             <groupId>com.yaycrawler</groupId>
             <artifactId>yaycrawler-common</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${yaycrawler.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.yaycrawler</groupId>
+            <artifactId>yaycrawler-cache</artifactId>
+            <version>${yaycrawler.version}</version>
         </dependency>
     </dependencies>
 
