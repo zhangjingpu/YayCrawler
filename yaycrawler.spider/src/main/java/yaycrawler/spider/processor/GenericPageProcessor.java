@@ -115,7 +115,7 @@ public class GenericPageProcessor implements PageProcessor {
         Selectable context;
         if (StringUtils.isBlank(regionSelectExpression) || DEFAULT_PAGE_SELECTOR.equals(regionSelectExpression))
             context = page.getHtml();
-        else if (regionSelectExpression.toLowerCase().contains("getjson()"))
+        else if (regionSelectExpression.toLowerCase().contains("getjson()") || regionSelectExpression.toLowerCase().contains("jsonpath"))
             context = SelectorExpressionResolver.resolve(request, page.getJson(), regionSelectExpression);
         else
             context = SelectorExpressionResolver.resolve(request, page.getHtml(), regionSelectExpression);

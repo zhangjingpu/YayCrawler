@@ -6,7 +6,7 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
-import yaycrawler.cache.serive.ICacheService;
+import yaycrawler.cache.service.ICacheService;
 import yaycrawler.dao.repositories.RuleVersionRepository;
 
 /**

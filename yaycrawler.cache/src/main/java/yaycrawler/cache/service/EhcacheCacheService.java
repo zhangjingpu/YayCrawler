@@ -1,4 +1,4 @@
-package yaycrawler.cache.serive;
+package yaycrawler.cache.service;
 
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.store.MemoryStoreEvictionPolicy;

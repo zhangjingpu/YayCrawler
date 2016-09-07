@@ -1,4 +1,4 @@
-package yaycrawler.cache.serive;
+package yaycrawler.cache.service;
 
 import org.springframework.cache.Cache;
 

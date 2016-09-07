@@ -1,10 +1,13 @@
 package yaycrawler.spider.resolver;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import us.codecraft.webmagic.Request;
 import us.codecraft.webmagic.selector.Json;
+import us.codecraft.webmagic.selector.PlainText;
 import us.codecraft.webmagic.selector.Selectable;
 
 import java.util.Collection;
@@ -82,12 +85,12 @@ public class SelectorExpressionResolver {
              */
             if ("customurl".equals(lowerMethodName)) {
                 String url = params[0];
-                if(localObject == null)
+                if (localObject == null)
                     return null;
                 if (url.contains("REQUEST("))
                     url = ParamResolver.resolverFromRequest(request, url);
-                else if(url.contains("REPLACE(") && localObject != null)
-                    url = ParamResolver.resolverReplaceRequest(request,url,localObject);
+                else if (url.contains("REPLACE(") && localObject != null)
+                    url = ParamResolver.resolverReplaceRequest(request, url, localObject);
                 return url;
             }
             //应该有四个参数（template,varName,start,end)
@@ -103,7 +106,7 @@ public class SelectorExpressionResolver {
                 }
                 return dl;
             }
-            if("tostring".equals(lowerMethodName))
+            if ("tostring".equals(lowerMethodName))
                 return localObject.toString();
 
             if (localObject instanceof Selectable)
@@ -118,8 +121,7 @@ public class SelectorExpressionResolver {
 
     private static Object executeScalar(Request request, Object localObject, String lowerMethodName, String[] params) {
 
-        if("stringreplace".equals(lowerMethodName)&&params.length==2)
-        {
+        if ("stringreplace".equals(lowerMethodName) && params.length == 2) {
             String oldValue = params[0];
             String newValue = params[1];
             if (localObject instanceof Collection) {
@@ -144,7 +146,7 @@ public class SelectorExpressionResolver {
                 return itemList;
             } else return prefixValue + String.valueOf(localObject);
         }
-        if("suffix".equals(lowerMethodName)) {
+        if ("suffix".equals(lowerMethodName)) {
             //附加一个后缀缀
             String suffixValue = params[0];
             if (localObject instanceof Collection) {
@@ -152,12 +154,30 @@ public class SelectorExpressionResolver {
                 if (itemCollection.size() == 0) return localObject;
                 List<String> itemList = new LinkedList<>();
                 for (Object o : itemCollection) {
-                    itemList.add( String.valueOf(o) + suffixValue);
+                    itemList.add(String.valueOf(o) + suffixValue);
                 }
                 return itemList;
-            } else return String.valueOf(localObject) + suffixValue ;
+            } else return String.valueOf(localObject) + suffixValue;
         }
+
         return localObject;
+    }
+
+    private static List split(Object localObject,String[] params) {
+        String separator = params[0];
+        String[] tmps = String.valueOf(localObject).split(separator);
+        int count = 0;
+        List itemList = Lists.newArrayList();
+        for (String tmp : tmps) {
+            if (params.length > 1 && tmps.length >Integer.parseInt(params[1])) {
+                count = Integer.parseInt(params[1]);
+                itemList.add(tmps[count]);
+                break;
+            } else {
+                itemList.add(String.valueOf(tmp));
+            }
+        }
+        return itemList;
     }
 
     private static Object executeSelectable(Request request, Selectable selectable, String lowerMethodName, String[] params) {
@@ -190,18 +210,38 @@ public class SelectorExpressionResolver {
         }
 
         if ("jsonpath".equals(lowerMethodName)) {
-            if(!(selectable instanceof  Json))
-               return  new Json(selectable.get()).jsonPath(params[0]);
+            if (!(selectable instanceof Json))
+                return new Json(selectable.get()).jsonPath(params[0]);
             return selectable.jsonPath(params[0]);
         }
 
         if ("all".equals(lowerMethodName))
             return selectable.all();
-
+        if ("nodes".equals(lowerMethodName))
+            return selectable.nodes();
         if ("get".equals(lowerMethodName)) {
             String r = selectable.get();
             return r == null ? null : r.trim();
         }
+
+        /**
+         * 自定义数组解析
+         */
+
+        if ("split".equals(lowerMethodName)) {
+            if (selectable instanceof Collection) {
+                Collection itemCollection = (Collection) selectable;
+                if (itemCollection.size() == 0) return selectable;
+                List<String> itemList = new LinkedList<>();
+                for (Object o : itemCollection) {
+                    itemList.addAll(split(o,params));
+                }
+                return new PlainText(itemList);
+            } else {
+                return new PlainText(split(selectable,params));
+            }
+        }
+
         return selectable;
     }
 

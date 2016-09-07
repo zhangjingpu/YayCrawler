@@ -1,13 +1,15 @@
 package yaycrawler.master.service;
 
 import com.alibaba.fastjson.JSON;
-import com.google.common.collect.Maps;
+import com.google.common.collect.*;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.DefaultTypedTuple;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -16,6 +18,8 @@ import yaycrawler.common.model.CrawlerRequest;
 import yaycrawler.common.model.QueueQueryParam;
 import yaycrawler.common.model.QueueQueryResult;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.*;
 
 /**
@@ -94,16 +98,78 @@ public class RedisCrawlerQueueService implements ICrawlerQueueService {
         try {
             logger.info("开始注册{}个任务", crawlerRequests.size());
             Map<String, String> taskDetailsMap = Maps.newHashMap();
+            List<CrawlerRequest> requestTmps = Lists.newArrayList();
+            for (CrawlerRequest crawlerRequest : crawlerRequests) {
+                Map<String, Object> parameter = crawlerRequest.getData();
+                List<Object> arrayTmps = null;
+                Map pagination = null;
+                List datas = Lists.newArrayList();
+                for (String key : parameter.keySet()) {
+                    if (StringUtils.startsWith(key, "$array_")) {
+                        arrayTmps = (List<Object>) parameter.get(key);
+                        List<Map> tmpData = Lists.newArrayList();
+                        String tmpParam = StringUtils.substringAfter(key, "$array_");
+                        for (Object tmp : arrayTmps) {
+                            tmpData.add(ImmutableMap.of(tmpParam, tmp));
+                        }
 
-            for (CrawlerRequest request : crawlerRequests) {
+                        datas.add(ImmutableSet.copyOf(tmpData));
+                    } else if (StringUtils.startsWith(key, "$pagination_")) {
+                        pagination = JSON.parseObject(String.valueOf(parameter.get(key)),Map.class);
+                        List<Map> tmpData = Lists.newArrayList();
+                        int start = Integer.parseInt(pagination.get("START").toString());
+                        int end = Integer.parseInt(pagination.get("END").toString());
+                        int step = Integer.parseInt(pagination.get("STEP").toString());
+                        String tmpParam = StringUtils.substringAfter(key, "$pagination_");
+                        for (int i = start; i <= end; i = i + step) {
+                            tmpData.add(ImmutableMap.of(tmpParam, i));
+                        }
+                        datas.add(ImmutableSet.copyOf(tmpData));
+                    } else {
+                        datas.add(ImmutableSet.of(ImmutableMap.of(key, parameter.get(key))));
+                    }
+                }
+                if (datas != null && datas.size() > 0) {
+                    Set<List<ImmutableMap<String, String>>> sets = Sets.cartesianProduct(datas);
+                    for (List<ImmutableMap<String, String>> requests : sets) {
+                        CrawlerRequest request = new CrawlerRequest();
+                        BeanUtils.copyProperties(crawlerRequest, request);
+                        Map<Object, Object> tmp = Maps.newHashMap();
+                        for (Map data : requests) {
+                            if (data != null)
+                                tmp.put(data.keySet().iterator().next(), data.values().iterator().next());
+                        }
+                        if (StringUtils.equalsIgnoreCase(crawlerRequest.getMethod(), "GET")) {
+                            StringBuilder urlBuilder = new StringBuilder(request.getUrl());
+                            for (Map.Entry<Object, Object> entry : tmp.entrySet()) {
+                                try {
+                                    if (entry.getKey() == null || StringUtils.isEmpty(entry.getKey().toString())) {
+                                        urlBuilder.append(String.format("%s/%s", "/", URLEncoder.encode(String.valueOf(entry.getValue()), "utf-8")));
+                                    } else
+                                        urlBuilder.append(String.format("%s%s=%s", urlBuilder.indexOf("?") > 0 ? "&" : "?", entry.getKey(), URLEncoder.encode(String.valueOf(entry.getValue()), "utf-8")));
+                                } catch (UnsupportedEncodingException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            request.setUrl(urlBuilder.toString());
+                            request.setData(null);
+                        } else {
+                            request.setData(tmp);
+                        }
+                        requestTmps.add(request);
+                    }
+                }
+                if(parameter==null || parameter.size() == 0) {
+                    requestTmps.add(crawlerRequest);
+                }
+            }
+            for (CrawlerRequest request : requestTmps) {
                 if (!removeDuplicated && isDuplicate(request)) continue;
-
                 String url = getUniqueUrl(request);
                 request.setUrl(url);
                 String hashCode = DigestUtils.sha1Hex(url);
                 request.setHashCode(hashCode);
                 taskDetailsMap.put(hashCode, JSON.toJSONString(request));
-
                 if (taskDetailsMap.size() >= batchSize) {
                     batchPushToWaitingQueue(taskDetailsMap);
                     taskDetailsMap.clear();

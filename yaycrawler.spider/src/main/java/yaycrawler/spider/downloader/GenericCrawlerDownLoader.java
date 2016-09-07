@@ -36,7 +36,7 @@ public class GenericCrawlerDownLoader extends AbstractDownloader {
         mockDonwnloader = new PhantomJsMockDonwnloader();
     }
 
-    private static Pattern redirectPattern = Pattern.compile("<script.*(?s).*location.href\\s*=.*(?s).*</script>");
+    private static Pattern redirectPattern = Pattern.compile("<script.*(?s)setInterval.*location.href\\s*=.*(?s).*</script>");
 
     @Override
     public Page download(Request request, Task task) {
@@ -53,7 +53,7 @@ public class GenericCrawlerDownLoader extends AbstractDownloader {
             request.putExtra("cookieId", cookieId);
         }
         Page page = !isJsRendering ? httpClientDownloader.download(request, task, cookie) : mockDonwnloader.download(request, task, cookie);
-        if ((!"post".equalsIgnoreCase(request.getMethod())&&page != null) && redirectPattern.matcher(page.getRawText()).find())
+        if (!isJsRendering && (!"post".equalsIgnoreCase(request.getMethod())&&page != null) && redirectPattern.matcher(page.getRawText()).find())
             page = mockDonwnloader.download(request, task, cookie);
         return page;
     }

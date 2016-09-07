@@ -126,10 +126,10 @@ public class ConfigSpiderService {
             }
         });
         if (page != null) {
-//            Map<String, Object> m = new HashMap<>();
-//            m.put("inputTime", System.currentTimeMillis());
-//            m.put("page", page);
-//            pageMap.put(request.getUrl(), m);
+            Map<String, Object> m = new HashMap<>();
+            m.put("inputTime", System.currentTimeMillis());
+            m.put("page", page);
+            pageMap.put(request.getUrl(), m);
         }
         return page;
     }

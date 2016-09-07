@@ -22,8 +22,8 @@
             </tr>
             <tr>
                 <td>customurl</td>
-                <td>包含"REQUEST(参数名)"的字符串</td>
-                <td>在Request上下文中查找”参数名“对应的值，并替换</td>
+                <td>包含"REQUEST(参数名)"的字符串或包含"REPLACE(参数名)"的字符串</td>
+                <td>在Request上下文中查找”参数名“对应的值，并替换,REPLACE用抓取值替换对应的参数值</td>
             </tr>
             <tr>
                 <td>prefix</td>
@@ -84,6 +84,11 @@
                 <td>get</td>
                 <td></td>
                 <td>与WebMagic中的get函数一致</td>
+            </tr>
+            <tr>
+                <td>split</td>
+                <td>一个或两个参数</td>
+                <td>数组处理函数：第二个函数为数组下标</td>
             </tr>
             </tbody>
         </table>
