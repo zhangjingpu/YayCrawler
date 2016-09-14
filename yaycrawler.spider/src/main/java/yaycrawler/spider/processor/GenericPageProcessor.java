@@ -175,7 +175,7 @@ public class GenericPageProcessor implements PageProcessor {
                 //组装成完整的URL
                 if (u instanceof Collection) {
                     Collection<String> urlList = (Collection<String>) u;
-                    if (urlList != null && urlList.size() > 0)
+                    if (urlList.size() > 0)
                         for (String url : urlList)
                             childRequestList.add(new CrawlerRequest(url, urlParseRule.getMethod(), urlParamMap));
                 } else

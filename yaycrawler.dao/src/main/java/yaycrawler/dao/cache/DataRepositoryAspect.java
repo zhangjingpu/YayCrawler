@@ -52,6 +52,7 @@ public class DataRepositoryAspect {
         MethodInvocationProceedingJoinPoint methodPoint = (MethodInvocationProceedingJoinPoint) point;
         try {
             Object result = methodPoint.proceed(point.getArgs());
+            return result;
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }

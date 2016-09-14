@@ -32,14 +32,23 @@ public class PhantomJsMockDonwnloader extends AbstractDownloader {
         Set<Integer> acceptStatCode;
 //        String charset = "utf-8";
 //        Map<String, String> headers = null;
+        String domain = "";
+        String userAgent = "";
+        boolean isUserGzip = true;
+        int retryTimes = 3;
+        String charset = "utf-8";
         if (site != null) {
             acceptStatCode = site.getAcceptStatCode();
-//            charset = site.getCharset();
+            domain = String.valueOf(site.getDomain());
+            userAgent = site.getUserAgent();
+            isUserGzip = site.isUseGzip();
+            retryTimes = site.getRetryTimes();
+            charset = site.getCharset();
 //            headers = site.getHeaders();
         } else {
             acceptStatCode = Sets.newHashSet(200, 500);
         }
-        String domain = String.valueOf(site.getDomain());
+
         logger.debug("downloading page {}", request.getUrl());
         int statusCode = 0;
         String result = null;
@@ -47,14 +56,14 @@ public class PhantomJsMockDonwnloader extends AbstractDownloader {
 
             List<String> paramList = new ArrayList<>();
             paramList.add(request.getUrl());
-            paramList.add(URLEncoder.encode(site.getUserAgent().replaceAll(" ", "%20"), "utf-8"));
+            paramList.add(URLEncoder.encode(userAgent.replaceAll(" ", "%20"), "utf-8"));
             paramList.add(domain);
-            paramList.add(String.valueOf(site.isUseGzip()));
-            paramList.add(String.valueOf(site.getRetryTimes()));
+            paramList.add(String.valueOf(isUserGzip));
+            paramList.add(String.valueOf(retryTimes));
             cookie = cookie != null ? URLEncoder.encode(cookie.replaceAll(" ", "%20"), "utf-8") : "";
             paramList.add(cookie);
 
-            result = CasperjsProgramManager.launch("casperjsDownload.js", site.getCharset(), paramList);
+            result = CasperjsProgramManager.launch("casperjsDownload.js", charset, paramList);
 
             statusCode = Integer.parseInt(StringUtils.substringBefore(result, "\r\n").trim());
             request.putExtra(Request.STATUS_CODE, statusCode);

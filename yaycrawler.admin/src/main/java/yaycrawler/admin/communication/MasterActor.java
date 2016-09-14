@@ -33,7 +33,7 @@ public class MasterActor {
     public boolean publishTasks(CrawlerRequest... crawlerRequests) {
         String targetUrl = CommunicationAPIs.getFullRemoteUrl(masterServerAddress, CommunicationAPIs.ADMIN_POST_MASTER_TASK_REGEDIT);
         RestFulResult result = HttpUtils.doSignedHttpExecute(secret, targetUrl, HttpMethod.POST, crawlerRequests);
-        if(result.hasError()) logger.error(result.getMessage());
+        if(result!=null && result.hasError()) logger.error(result.getMessage());
         return result != null && !result.hasError();
     }
 

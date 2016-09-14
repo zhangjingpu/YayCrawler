@@ -9,7 +9,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
-public class DateUtils extends org.apache.commons.lang3.time.DateUtils{
+public class UcsDateUtils extends org.apache.commons.lang3.time.DateUtils{
 
 	public static String F19 = "yyyy-MM-dd HH:mm:ss";
 
@@ -19,7 +19,7 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils{
 
 	public static final String ISO_DATE_FORMAT = "yyyyMMdd";
 
-	public static String[] dataStringFormats = {
+	private static final String[] dataStringFormats = {
 			"yyyyMMddHHmmss",
 			"yyyyMMdd",
 			"yyyy-MM-dd",
@@ -285,7 +285,7 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils{
 	 */
 	public static String stringToDateStr(String dateString,String format){
 		String dateStr = "";
-		if(dateString != "" && dateString != null){
+		if(StringUtils.isNotEmpty(dateString)){
 			Date date =stringToDate(dateString);
 			DateFormat t = new SimpleDateFormat(format);
 			dateStr = t.format(date);

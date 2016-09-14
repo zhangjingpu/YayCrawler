@@ -9,12 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.DefaultTypedTuple;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
 import yaycrawler.common.model.CrawlerRequest;
+import yaycrawler.common.model.CrawlerResult;
 import yaycrawler.common.model.QueueQueryParam;
 import yaycrawler.common.model.QueueQueryResult;
 
@@ -41,7 +41,7 @@ public class RedisCrawlerQueueService implements ICrawlerQueueService {
     private static final String FAIL_QUEUE_PREFIX = "fail:queue_";
     private static final String FAIL_EXTRA_PREFIX = "fail_extra:hash_";
     private static final String SUCCESS_QUEUE_PREFIX = "success:queue_";
-
+    private static final String SUCCESS_EXTRA_PREFIX = "success_extra:hash_";
 
     /**
      * 防止任务重复的key集合
@@ -85,6 +85,9 @@ public class RedisCrawlerQueueService implements ICrawlerQueueService {
         return SUCCESS_QUEUE_PREFIX + "data";
     }
 
+    private String getSuccessQueueExtraInfoIdentification() {
+        return SUCCESS_EXTRA_PREFIX + "data";
+    }
 
     /**
      * 添加任务到待执行队列
@@ -95,93 +98,115 @@ public class RedisCrawlerQueueService implements ICrawlerQueueService {
      */
     @Override
     public boolean pushTasksToWaitingQueue(List<CrawlerRequest> crawlerRequests, boolean removeDuplicated) {
-        try {
-            logger.info("开始注册{}个任务", crawlerRequests.size());
-            Map<String, String> taskDetailsMap = Maps.newHashMap();
-            List<CrawlerRequest> requestTmps = Lists.newArrayList();
-            for (CrawlerRequest crawlerRequest : crawlerRequests) {
-                Map<String, Object> parameter = crawlerRequest.getData();
-                List<Object> arrayTmps = null;
-                Map pagination = null;
-                List datas = Lists.newArrayList();
-                for (String key : parameter.keySet()) {
-                    if (StringUtils.startsWith(key, "$array_")) {
-                        arrayTmps = (List<Object>) parameter.get(key);
-                        List<Map> tmpData = Lists.newArrayList();
-                        String tmpParam = StringUtils.substringAfter(key, "$array_");
-                        for (Object tmp : arrayTmps) {
-                            tmpData.add(ImmutableMap.of(tmpParam, tmp));
-                        }
+        Map<String, String> taskDetailsMap = Maps.newHashMap();
+        List<CrawlerRequest> requestTmps = Lists.newArrayList();
+        for (CrawlerRequest crawlerRequest : crawlerRequests) {
+            if(crawlerRequest.getUrl() == null)
+                continue;
+            Map<String, Object> parameter = crawlerRequest.getData();
+            List<Object> arrayTmps = null;
+            Map pagination = null;
+            List datas = Lists.newArrayList();
+            if (parameter == null || parameter.size() == 0) {
+                requestTmps.add(crawlerRequest);
+            } else {
 
-                        datas.add(ImmutableSet.copyOf(tmpData));
-                    } else if (StringUtils.startsWith(key, "$pagination_")) {
-                        pagination = JSON.parseObject(String.valueOf(parameter.get(key)),Map.class);
-                        List<Map> tmpData = Lists.newArrayList();
-                        int start = Integer.parseInt(pagination.get("START").toString());
-                        int end = Integer.parseInt(pagination.get("END").toString());
-                        int step = Integer.parseInt(pagination.get("STEP").toString());
-                        String tmpParam = StringUtils.substringAfter(key, "$pagination_");
-                        for (int i = start; i <= end; i = i + step) {
-                            tmpData.add(ImmutableMap.of(tmpParam, i));
-                        }
-                        datas.add(ImmutableSet.copyOf(tmpData));
-                    } else {
-                        datas.add(ImmutableSet.of(ImmutableMap.of(key, parameter.get(key))));
-                    }
+                for (Map.Entry<String, Object> entry : parameter.entrySet()) {
+                    transformParameters(entry, datas);
                 }
                 if (datas != null && datas.size() > 0) {
-                    Set<List<ImmutableMap<String, String>>> sets = Sets.cartesianProduct(datas);
-                    for (List<ImmutableMap<String, String>> requests : sets) {
-                        CrawlerRequest request = new CrawlerRequest();
-                        BeanUtils.copyProperties(crawlerRequest, request);
-                        Map<Object, Object> tmp = Maps.newHashMap();
-                        for (Map data : requests) {
-                            if (data != null)
-                                tmp.put(data.keySet().iterator().next(), data.values().iterator().next());
-                        }
-                        if (StringUtils.equalsIgnoreCase(crawlerRequest.getMethod(), "GET")) {
-                            StringBuilder urlBuilder = new StringBuilder(request.getUrl());
-                            for (Map.Entry<Object, Object> entry : tmp.entrySet()) {
-                                try {
-                                    if (entry.getKey() == null || StringUtils.isEmpty(entry.getKey().toString())) {
-                                        urlBuilder.append(String.format("%s/%s", "/", URLEncoder.encode(String.valueOf(entry.getValue()), "utf-8")));
-                                    } else
-                                        urlBuilder.append(String.format("%s%s=%s", urlBuilder.indexOf("?") > 0 ? "&" : "?", entry.getKey(), URLEncoder.encode(String.valueOf(entry.getValue()), "utf-8")));
-                                } catch (UnsupportedEncodingException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                            request.setUrl(urlBuilder.toString());
-                            request.setData(null);
-                        } else {
-                            request.setData(tmp);
-                        }
-                        requestTmps.add(request);
+                    transformRequest(requestTmps, crawlerRequest, datas);
+                }
+            }
+
+
+        }
+        logger.info("开始注册{}个任务", requestTmps.size());
+        for (CrawlerRequest request : requestTmps) {
+            if (!removeDuplicated && isDuplicate(request)) continue;
+            String url = getUniqueUrl(request);
+            request.setUrl(url);
+            String hashCode = DigestUtils.sha1Hex(url);
+            request.setHashCode(hashCode);
+            taskDetailsMap.put(hashCode, JSON.toJSONString(request));
+            if (taskDetailsMap.size() >= batchSize) {
+                batchPushToWaitingQueue(taskDetailsMap);
+                taskDetailsMap.clear();
+            }
+        }
+        batchPushToWaitingQueue(taskDetailsMap);
+        return true;
+    }
+
+    /**
+     * 通过迪卡尔积生成多个参数批量任务
+     * @param requestTmps
+     * @param crawlerRequest
+     * @param datas
+     */
+    private void transformRequest(List<CrawlerRequest> requestTmps, CrawlerRequest crawlerRequest, List datas) {
+        Set<List<ImmutableMap<String, String>>> parameterSets = Sets.cartesianProduct(datas);
+        Map dataTmp = ImmutableMap.of();
+        for (List<ImmutableMap<String, String>> parameters : parameterSets) {
+            CrawlerRequest request = new CrawlerRequest();
+            BeanUtils.copyProperties(crawlerRequest, request);
+            Map<Object, Object> tmp = Maps.newHashMap();
+            for (Map data : parameters) {
+                if (data != null)
+                    tmp.put(data.keySet().iterator().next(), data.values().iterator().next());
+            }
+            if (StringUtils.equalsIgnoreCase(crawlerRequest.getMethod(), "GET")) {
+                StringBuilder urlBuilder = new StringBuilder(request.getUrl());
+                for (Map.Entry<Object, Object> entry : tmp.entrySet()) {
+                    try {
+                        if (entry.getKey() == null || StringUtils.isEmpty(entry.getKey().toString())) {
+                            urlBuilder.append(String.format("%s/%s", "/", URLEncoder.encode(String.valueOf(entry.getValue()), "utf-8")));
+                        } else
+                            urlBuilder.append(String.format("%s%s=%s", urlBuilder.indexOf("?") > 0 ? "&" : "?", entry.getKey(), URLEncoder.encode(String.valueOf(entry.getValue()), "utf-8")));
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
                     }
                 }
-                if(parameter==null || parameter.size() == 0) {
-                    requestTmps.add(crawlerRequest);
-                }
+                request.setUrl(urlBuilder.toString());
+                request.setData(dataTmp);
+            } else {
+                request.setData(tmp);
             }
-            for (CrawlerRequest request : requestTmps) {
-                if (!removeDuplicated && isDuplicate(request)) continue;
-                String url = getUniqueUrl(request);
-                request.setUrl(url);
-                String hashCode = DigestUtils.sha1Hex(url);
-                request.setHashCode(hashCode);
-                taskDetailsMap.put(hashCode, JSON.toJSONString(request));
-                if (taskDetailsMap.size() >= batchSize) {
-                    batchPushToWaitingQueue(taskDetailsMap);
-                    taskDetailsMap.clear();
-                }
-            }
-            batchPushToWaitingQueue(taskDetailsMap);
-            return true;
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-            return false;
+            requestTmps.add(request);
         }
+    }
 
+    /**
+     * 通过批量参数转换成批量任务
+     * @param entry
+     * @param datas
+     */
+    private void transformParameters(Map.Entry<String, Object> entry, List datas) {
+        List<Object> arrayTmps;
+        Map pagination;
+        if (StringUtils.startsWith(entry.getKey(), "$array_")) {
+            arrayTmps = JSON.parseObject(String.valueOf(entry.getValue()), List.class);
+            List<Map<String, Object>> tmpData = Lists.newArrayList();
+            String tmpParam = StringUtils.substringAfter(entry.getKey(), "$array_");
+            for (Object tmp : arrayTmps) {
+                tmpData.add(ImmutableMap.of(tmpParam, tmp));
+            }
+
+            datas.add(ImmutableSet.copyOf(tmpData));
+        } else if (StringUtils.startsWith(entry.getKey(), "$pagination_")) {
+            pagination = JSON.parseObject(String.valueOf(entry.getValue()), Map.class);
+            List<Map> tmpData = Lists.newArrayList();
+            int start = Integer.parseInt(pagination.get("START").toString());
+            int end = Integer.parseInt(pagination.get("END").toString());
+            int step = Integer.parseInt(pagination.get("STEP").toString());
+            String tmpParam = StringUtils.substringAfter(entry.getKey(), "$pagination_");
+            for (int i = start; i <= end; i = i + step) {
+                tmpData.add(ImmutableMap.of(tmpParam, i));
+            }
+            datas.add(ImmutableSet.copyOf(tmpData));
+        } else {
+            datas.add(ImmutableSet.of(ImmutableMap.of(entry.getKey(), entry.getValue())));
+        }
     }
 
     /**
@@ -204,11 +229,11 @@ public class RedisCrawlerQueueService implements ICrawlerQueueService {
      */
     @Override
     public boolean moveWaitingTaskToRunningQueue(String workerId, List<CrawlerRequest> crawlerRequests) {
-        List<String> taskCodeList = new ArrayList<>(crawlerRequests.size());
+//        List<String> taskCodeList = new ArrayList<>(crawlerRequests.size());
         ZSetOperations zSetOperations = redisTemplate.opsForZSet();
         for (CrawlerRequest crawlerRequest : crawlerRequests) {
             String hashCode = crawlerRequest.getHashCode();
-            taskCodeList.add(hashCode);
+//            taskCodeList.add(hashCode);
             zSetOperations.add(getRunningQueueIdentification(), hashCode, System.currentTimeMillis());
             zSetOperations.remove(getWaitingQueueIdentification(), hashCode);
         }
@@ -225,9 +250,13 @@ public class RedisCrawlerQueueService implements ICrawlerQueueService {
      */
     @Override
     public boolean moveRunningTaskToFailQueue(String taskCode, String message) {
-        if (redisTemplate.opsForZSet().add(getFailQueueIdentification(), taskCode, System.currentTimeMillis())) {
-            redisTemplate.opsForHash().put(getFailQueueExtraInfoIdentification(), taskCode, message);
+
+        if (redisTemplate.opsForZSet().rank(getSuccessQueueIdentification(), taskCode) != null) {
+            redisTemplate.opsForZSet().remove(getSuccessQueueIdentification(), taskCode);
         }
+
+        redisTemplate.opsForZSet().add(getFailQueueIdentification(), taskCode, System.currentTimeMillis());
+        redisTemplate.opsForHash().put(getFailQueueExtraInfoIdentification(), taskCode, message);
         redisTemplate.opsForZSet().remove(getRunningQueueIdentification(), taskCode);
         //清理去重列表
         redisTemplate.opsForSet().remove(getUniqueKeySetIdentification(), taskCode);
@@ -237,18 +266,22 @@ public class RedisCrawlerQueueService implements ICrawlerQueueService {
     /**
      * 从执行中队列把成功的任务移到成功队列
      *
-     * @param taskCode
+     * @param crawlerResult
      * @return
      */
     @Override
-    public boolean moveRunningTaskToSuccessQueue(String taskCode) {
-        if (redisTemplate.opsForZSet().add(getSuccessQueueIdentification(), taskCode, System.currentTimeMillis())) {
-            redisTemplate.opsForZSet().remove(getRunningQueueIdentification(), taskCode);
-            //清理去重列表
-            redisTemplate.opsForSet().remove(getUniqueKeySetIdentification(), taskCode);
-            return true;
+    public boolean moveRunningTaskToSuccessQueue(CrawlerResult crawlerResult) {
+        String taskCode = crawlerResult.getKey();
+        if (redisTemplate.opsForZSet().rank(getSuccessQueueIdentification(), taskCode) != null) {
+            redisTemplate.opsForZSet().remove(getSuccessQueueIdentification(), taskCode);
         }
-        return false;
+
+        redisTemplate.opsForZSet().add(getSuccessQueueIdentification(), taskCode, System.currentTimeMillis());
+        redisTemplate.opsForHash().put(getSuccessQueueExtraInfoIdentification(), taskCode, JSON.toJSONString(crawlerResult));
+        redisTemplate.opsForZSet().remove(getRunningQueueIdentification(), taskCode);
+        //清理去重列表
+        redisTemplate.opsForSet().remove(getUniqueKeySetIdentification(), taskCode);
+        return true;
     }
 
     /**
@@ -399,6 +432,7 @@ public class RedisCrawlerQueueService implements ICrawlerQueueService {
             queueIdentification = getRunningQueueIdentification();
         } else if (StringUtils.equalsIgnoreCase(queueName, "success")) {
             queueIdentification = getSuccessQueueIdentification();
+            extraDataIdentification = getSuccessQueueExtraInfoIdentification();
         } else if (StringUtils.equalsIgnoreCase(queueName, "fail")) {
             queueIdentification = getFailQueueIdentification();
             extraDataIdentification = getFailQueueExtraInfoIdentification();
@@ -418,14 +452,12 @@ public class RedisCrawlerQueueService implements ICrawlerQueueService {
             if (crawlerRequest == null) continue;
             if (crawlerRequest.getExtendMap() == null) crawlerRequest.setExtendMap(new HashedMap());
             crawlerRequest.getExtendMap().put("startTime", tuple.getScore().longValue());
-            if (crawlerRequest != null) {
-                if (extraDataIdentification != null) {
-                    Object extraInfo = redisTemplate.opsForHash().get(extraDataIdentification, code);
-                    crawlerRequest.getExtendMap().put("extraInfo", extraInfo);
-                }
-                crawlerRequestList.add(crawlerRequest);
-            }
 
+            if (extraDataIdentification != null) {
+                Object extraInfo = redisTemplate.opsForHash().get(extraDataIdentification, code);
+                crawlerRequest.getExtendMap().put("extraInfo", extraInfo);
+            }
+            crawlerRequestList.add(crawlerRequest);
         }
         queryResult.setRows(crawlerRequestList);
         return queryResult;

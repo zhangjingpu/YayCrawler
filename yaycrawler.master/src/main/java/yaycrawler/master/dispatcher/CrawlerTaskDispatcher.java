@@ -40,7 +40,7 @@ public class CrawlerTaskDispatcher {
         if (crawlerResult.isSuccess()) {
             if (crawlerResult.getCrawlerRequestList().size() > 0)
                 queueService.pushTasksToWaitingQueue(crawlerResult.getCrawlerRequestList(), false);
-            queueService.moveRunningTaskToSuccessQueue(crawlerResult.getKey());
+            queueService.moveRunningTaskToSuccessQueue(crawlerResult);
         } else {
             queueService.moveRunningTaskToFailQueue(crawlerResult.getKey(), crawlerResult.getMessage());
         }

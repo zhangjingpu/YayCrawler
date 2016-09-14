@@ -4,6 +4,7 @@ import com.sun.istack.internal.NotNull;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.sql.Date;
 
 /**
@@ -11,7 +12,7 @@ import java.sql.Date;
  */
 @Entity
 @Table(name = "res_site_cookie")
-public class SiteCookie {
+public class SiteCookie implements Serializable {
 
     public SiteCookie() {
     }

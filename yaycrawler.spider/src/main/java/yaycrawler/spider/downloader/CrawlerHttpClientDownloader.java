@@ -84,6 +84,8 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
         } else {
             acceptStatCode = Sets.newHashSet(200);
         }
+        if(request == null)
+            return null;
         logger.debug("downloading page {}", request.getUrl());
         CloseableHttpResponse httpResponse = null;
         int statusCode = 0;
@@ -92,6 +94,7 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
                 if (headers == null) headers = new HashMap<>();
                 headers.put("Cookie", cookie);
             }
+
             HttpUriRequest httpUriRequest = getHttpUriRequest(request, site, headers);
             httpResponse = getHttpClient(site).execute(httpUriRequest);
             statusCode = httpResponse.getStatusLine().getStatusCode();
@@ -231,7 +234,7 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
                 content = new String(contentBytes, htmlCharset);
             } else {
                 logger.warn("Charset autodetect failed, use {} as charset. Please specify charset in Site.setCharset()", Charset.defaultCharset());
-                content = new String(contentBytes);
+                content = new String(contentBytes,"utf-8");
             }
         } else {
             content = IOUtils.toString(httpResponse.getEntity().getContent(), charset);

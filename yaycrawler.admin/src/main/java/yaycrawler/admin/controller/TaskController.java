@@ -169,7 +169,7 @@ public class TaskController {
         Assert.notNull(pageUrl);
         Assert.notNull(taskId);
 
-        return resultRetrivalService.RetrivalByTaskId(UrlUtils.getDomain(pageUrl).replace(".", "_"), taskId);
+        return resultRetrivalService.retrivalByTaskId(UrlUtils.getDomain(pageUrl).replace(".", "_"), taskId);
     }
 
     @RequestMapping(value = "/uploadFile",method = RequestMethod.POST)

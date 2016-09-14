@@ -1,6 +1,7 @@
 package yaycrawler.master.service;
 
 import yaycrawler.common.model.CrawlerRequest;
+import yaycrawler.common.model.CrawlerResult;
 import yaycrawler.common.model.QueueQueryParam;
 import yaycrawler.common.model.QueueQueryResult;
 
@@ -46,10 +47,10 @@ public interface ICrawlerQueueService {
     /**
      * 从执行中队列把成功的任务移到成功队列
      *
-     * @param  taskCode
+     * @param  crawlerResult
      * @return
      */
-    boolean moveRunningTaskToSuccessQueue(String taskCode);
+    boolean moveRunningTaskToSuccessQueue(CrawlerResult crawlerResult);
 
 
     /**

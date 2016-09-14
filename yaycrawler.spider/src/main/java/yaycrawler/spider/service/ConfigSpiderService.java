@@ -70,12 +70,11 @@ public class ConfigSpiderService {
 
     public Object testExpressionOnPage(PageInfo pageInfo, String expression) {
         if (StringUtils.isBlank(expression)) return null;
+        if (pageInfo == null ) return null;
         String targetUrl = pageInfo.getPageUrl();
         Map<String, Object> paramsMap = pageInfo.getParamsMap();
         Request request = RequestHelper.createRequest(targetUrl, pageInfo.getMethod(), paramsMap);
-        if(pageInfo != null) {
-            request.putExtra("$pageInfo",pageInfo);
-        }
+        request.putExtra("$pageInfo",pageInfo);
         Page page = downloadPage(request, null);
         if (page == null) return RestFulResult.failure("页面下载失败！");
         pageProcessor.process(page);
@@ -111,7 +110,11 @@ public class ConfigSpiderService {
             Map<String, Object> m = pageMap.get(request.getUrl());
             Long inputTime = MapUtils.getLong(m, "inputTime");
             Page page = (Page) MapUtils.getObject(m, "page");
-            if (System.currentTimeMillis() - inputTime > 86400000) pageMap.remove(m);
+            long leftTime = System.currentTimeMillis() - inputTime;
+            if (leftTime > 86400000L) {
+                pageMap.remove(request.getUrl());
+            }
+//                pageMap.remove(m);
             return page;
         }
         Page page = downloader.download(request, new Task() {

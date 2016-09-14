@@ -89,7 +89,7 @@ public class SelectorExpressionResolver {
                     return null;
                 if (url.contains("REQUEST("))
                     url = ParamResolver.resolverFromRequest(request, url);
-                else if (url.contains("REPLACE(") && localObject != null)
+                else if (url.contains("REPLACE("))
                     url = ParamResolver.resolverReplaceRequest(request, url, localObject);
                 return url;
             }

@@ -99,7 +99,7 @@ public class ConfigController {
 
     @RequestMapping(value = "/testPageValidation", method = RequestMethod.POST)
     @ResponseBody
-    public Object ValidationPageInfo(@RequestBody PageInfo pageInfo) {
+    public Object validationPageInfo(@RequestBody PageInfo pageInfo) {
         return configSpiderService.testExpressionOnPage(pageInfo, pageInfo.getPageValidationRule());
     }
 

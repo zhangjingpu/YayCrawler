@@ -57,22 +57,22 @@ public class Descartes
 
 
     @Test
-    public void Test()
+    public void test()
     {
-        List<List<Map>> dimvalue = new ArrayList<List<Map>>();
-        List<Map> v1 = new ArrayList<Map>();
-        v1.add(ImmutableMap.of("p","1"));
-        v1.add(ImmutableMap.of("p","1"));
-        List<Map> v2 = new ArrayList<Map>();
-        v2.add(ImmutableMap.of("work_location","11"));
-        v2.add(ImmutableMap.of("work_location","12"));
-        v2.add(ImmutableMap.of("work_location","13"));
-        List<Map> v3 = new ArrayList<Map>();
-        v3.add(ImmutableMap.of("sex","m"));
-        v3.add(ImmutableMap.of("sex","f"));
-        dimvalue.add(v1);
-        dimvalue.add(v2);
-        dimvalue.add(v3);
+//        List<List<Map>> dimvalue = new ArrayList<List<Map>>();
+//        List<Map> v1 = new ArrayList<Map>();
+//        v1.add(ImmutableMap.of("p","1"));
+//        v1.add(ImmutableMap.of("p","1"));
+//        List<Map> v2 = new ArrayList<Map>();
+//        v2.add(ImmutableMap.of("work_location","11"));
+//        v2.add(ImmutableMap.of("work_location","12"));
+//        v2.add(ImmutableMap.of("work_location","13"));
+//        List<Map> v3 = new ArrayList<Map>();
+//        v3.add(ImmutableMap.of("sex","m"));
+//        v3.add(ImmutableMap.of("sex","f"));
+//        dimvalue.add(v1);
+//        dimvalue.add(v2);
+//        dimvalue.add(v3);
 
         List<Map> result = new ArrayList<Map>();
 //        Descartes.run(dimvalue, result, 0, Maps.newHashMap());

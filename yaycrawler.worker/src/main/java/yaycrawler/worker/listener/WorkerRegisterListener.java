@@ -14,8 +14,8 @@ public class WorkerRegisterListener implements ApplicationListener<ContextRefres
     @Override
     public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
         WebApplicationContext context = (WebApplicationContext) contextRefreshedEvent.getApplicationContext();
-        WorkerContext.webApplicationContext = context;
+        WorkerContext.setWebApplicationContext(context);
         MasterActor masterActor = context.getBean(MasterActor.class);
-        WorkerContext.isSuccessRegisted = masterActor.register();
+        WorkerContext.setIsSuccessRegisted(masterActor.register());
     }
 }

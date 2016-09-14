@@ -14,7 +14,7 @@ public class CrawlerResultRetrivalService {
     @Autowired
     private MongoTemplate mongoTemplate;
 
-    public Object  RetrivalByTaskId(String collectionName,String taskId)
+    public Object  retrivalByTaskId(String collectionName,String taskId)
     {
         return mongoTemplate.findById(taskId, LinkedHashMap.class, collectionName);
 

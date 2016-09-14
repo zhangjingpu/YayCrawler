@@ -79,6 +79,13 @@ public class UrlParseRule implements Serializable {
         this.regionId = regionId;
     }
 
+    public Set<UrlRuleParam> getUrlRuleParams() {
+        return urlRuleParams;
+    }
+
+    public void setUrlRuleParams(Set<UrlRuleParam> urlRuleParams) {
+        this.urlRuleParams = urlRuleParams;
+    }
 
     public Date getCreatedDate() {
         return createdDate;
@@ -86,13 +93,5 @@ public class UrlParseRule implements Serializable {
 
     public void setCreatedDate(Date createdDate) {
         this.createdDate = createdDate;
-    }
-
-    public Set<UrlRuleParam> getUrlRuleParams() {
-        return urlRuleParams;
-    }
-
-    public void setUrlRuleParams(Set<UrlRuleParam> urlRuleParams) {
-        this.urlRuleParams = urlRuleParams;
     }
 }

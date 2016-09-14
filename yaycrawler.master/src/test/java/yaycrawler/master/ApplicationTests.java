@@ -19,7 +19,7 @@ public class ApplicationTests {
 	}
 
 	@Test
-	public void TestLoadingCache() throws Exception{
+	public void testLoadingCache() throws Exception{
 		LoadingCache<String,String> cahceBuilder= CacheBuilder
 				.newBuilder()
 				.build(new CacheLoader<String, String>(){

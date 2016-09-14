@@ -61,8 +61,11 @@ public class CaptchaController {
 
             String tmpFolder = System.getProperty("user.dir") + "/tmp/";
             File file = new File(tmpFolder);
-            if (!file.exists() && !file.isDirectory()) file.mkdir();
-
+            boolean mflag = true;
+            if (!file.exists() && !file.isDirectory())
+                mflag = file.mkdir();
+            if(!mflag)
+                return null;
             String identification = String.valueOf(System.currentTimeMillis());
             String imageSubfix = "jpg";
 
@@ -102,8 +105,12 @@ public class CaptchaController {
     private void deleteImage(String fullbgImagePath) {
         File file = new File(fullbgImagePath);
         // 路径为文件且不为空则进行删除
+        boolean dFlag = true;
         if (file.isFile() && file.exists()) {
-            file.delete();
+            dFlag = file.delete();
+        }
+        if (!dFlag) {
+            System.out.println("删除失败！");
         }
     }
 

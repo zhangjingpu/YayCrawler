@@ -79,6 +79,7 @@ public class FtpClientUtils {
     public static boolean downFile(String url, int port,String username, String password, String remotePath,String fileName,String localPath) {
         boolean success = false;
         FTPClient ftp = new FTPClient();
+        OutputStream is = null;
         try {
             int reply;
             ftp.connect(url, port);
@@ -94,20 +95,28 @@ public class FtpClientUtils {
             for(FTPFile ff:fs){
                 if(ff.getName().equals(fileName)){
                     File localFile = new File(localPath+"/"+ff.getName());
+                    try {
+                        is = new FileOutputStream(localFile);
+                        ftp.retrieveFile(ff.getName(), is);
+                        is.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        is.close();
+                    }
 
-                    OutputStream is = new FileOutputStream(localFile);
-                    ftp.retrieveFile(ff.getName(), is);
-                    is.close();
                 }
             }
 
             ftp.logout();
             success = true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             if (ftp.isConnected()) {
                 try {
+                    if(is != null)
+                        is.close();
                     ftp.disconnect();
                 } catch (IOException ioe) {
                 }

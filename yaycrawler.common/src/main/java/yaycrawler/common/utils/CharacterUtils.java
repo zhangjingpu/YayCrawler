@@ -25,6 +25,8 @@ public class CharacterUtils {
                 case 2:
                     sb.append(String.valueOf(new Random().nextInt(10)));
                     break;
+                default:
+                    break;
             }
         }
         return sb.toString();

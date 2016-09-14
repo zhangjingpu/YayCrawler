@@ -29,7 +29,7 @@ public class CSVUtils {
         BufferedWriter bw = null;
         try {
             out = new FileOutputStream(file);
-            osw = new OutputStreamWriter(out);
+            osw = new OutputStreamWriter(out,"utf-8");
             bw = new BufferedWriter(osw);
             if (dataList != null && !dataList.isEmpty()) {
                 for (String data : dataList) {
@@ -37,7 +37,7 @@ public class CSVUtils {
                 }
             }
             isSucess = true;
-        } catch (Exception e) {
+        } catch (IOException e) {
             isSucess = false;
         } finally {
             if (bw != null) {
@@ -81,6 +81,8 @@ public class CSVUtils {
         try {
             br = new BufferedReader(new InputStreamReader(inputStream,"utf-8"));
             String line = br.readLine();
+            if(line == null)
+                return dataList;
             String[] title = line.split(",");
             while ((line = br.readLine()) != null) {
                Map map = new HashMap();
@@ -90,7 +92,8 @@ public class CSVUtils {
                 }
                 dataList.add(map);
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             if (br != null) {
                 try {

@@ -117,11 +117,11 @@
                                                 dataType: 'json',
                                                 async: false,
                                                 success: function (result) {     //回调函数，result，返回值
-//                                                    debugger
-//                                                    var resultReq = row.extendMap.result;
-//                                                    if (resultReq.crawlerRequestList.length > 0) {
-//                                                        result.resultReq = resultReq;
-//                                                    }
+                                                    debugger
+                                                    var resultReq = JSON.parse(row.extendMap.extraInfo);
+                                                    if (resultReq!= null && resultReq.crawlerRequestList.length > 0) {
+                                                        result.crawlerRequestList = resultReq.crawlerRequestList;
+                                                    }
                                                     $("#ta_result").val(JSON.stringify(result, null, "\t"));
                                                 },
                                                 error: function (msg) {

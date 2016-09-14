@@ -173,7 +173,10 @@ public class PageSite implements Serializable {
     }
 
     public Integer getSleepTime() {
-        return sleepTime==null?0:sleepTime;
+        if(sleepTime == null)
+            return 0;
+        else
+            return sleepTime;
     }
 
     public void setSleepTime(Integer sleepTime) {

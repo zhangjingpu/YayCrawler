@@ -7,7 +7,7 @@ public class PersistentDataType {
     /**
      * Map格式的页面数据
      */
-    public static String MAP = "MAP";
+    public final static String MAP = "MAP";
     /**
      * 图片
      */
@@ -16,4 +16,9 @@ public class PersistentDataType {
      * 文档
      */
     public static String DOCMUENT = "DOCUMENT";
+
+    /**
+     * 音乐
+     */
+    public static String MUSIC = "MUSIC";
 }

@@ -21,17 +21,18 @@ public class TaskService {
             List<Map> columns = new ArrayList<>();
             if(requestList != null && requestList.size() > 0) {
                 Map<String,String> request = requestList.get(0);
-
                 for (String key:request.keySet()) {
                     Map column = new HashMap();
                     column.put("field", key);
                     column.put("title",key);
                     columns.add(column);
                 }
+                result.put("total",requestList.size());
+            } else {
+                result.put("total",0);
             }
             result.put("columns",columns);
             result.put("data",requestList);
-            result.put("total",requestList.size());
             result.put("success", true);
         } catch (Exception e) {
             result.put("success", true);
@@ -54,10 +55,12 @@ public class TaskService {
                     column.put("title",key);
                     columns.add(column);
                 }
+                result.put("total",requestList.size());
+            } else {
+                result.put("total",0);
             }
             result.put("columns",columns);
             result.put("data",requestList);
-            result.put("total",requestList.size());
             result.put("success", true);
         } catch (Exception e) {
             e.printStackTrace();

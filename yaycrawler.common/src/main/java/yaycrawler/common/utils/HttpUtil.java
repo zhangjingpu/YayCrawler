@@ -80,16 +80,7 @@ public class HttpUtil {
 
     private volatile BasicCookieStore cookieStore;
 
-    public static String defaultEncoding = "utf-8";
-
-    class AnyTrustStrategy implements TrustStrategy {
-
-        @Override
-        public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            return true;
-        }
-
-    }
+    public static final String defaultEncoding = "utf-8";
 
     private static List<NameValuePair> paramsConverter(Map<String, String> params) {
         List<NameValuePair> nvps = new LinkedList<NameValuePair>();
@@ -294,7 +285,7 @@ public class HttpUtil {
     }
 
     public InputStream doPostForStream(String url, Map<String, String> queryParams) throws URISyntaxException, ClientProtocolException, IOException {
-        HttpResponse response = this.doPost(url, queryParams, null);
+        HttpResponse response = this.doPost(url, queryParams, null,null);
         return response != null ? response.getEntity().getContent() : null;
     }
 
@@ -312,7 +303,7 @@ public class HttpUtil {
     }
 
     public InputStream doPostForStream(String url, Map<String, String> queryParams, Map<String, String> formParams) throws URISyntaxException, ClientProtocolException, IOException {
-        HttpResponse response = this.doPost(url, queryParams, formParams);
+        HttpResponse response = this.doPost(url, queryParams, formParams,null);
         return response != null ? response.getEntity().getContent() : null;
     }
 
@@ -320,9 +311,6 @@ public class HttpUtil {
         return HttpUtil.readStream(this.doPostForStream(url, queryParams, formParams), null);
     }
 
-    public HttpResponse doPost(String url, Map<String, String> queryParams, Map<String, String> formParams) {
-        return doPost(url,queryParams,formParams);
-    }
     /**
      * 基本的Post请求
      *

@@ -26,8 +26,8 @@ public class ImageUtils {
      * @return 是否合并成功
      */
     public static boolean combineImages(List<String> imgSrcList, List<String[]> topLeftPointList, int countOfLine, int cutWidth, int cutHeight, String savePath, String subfix) {
-        if (imgSrcList == null || savePath == null || savePath.trim().length() == 0) return false;
-        BufferedImage lastImage = new BufferedImage(cutWidth * countOfLine, cutHeight * ((int) (Math.floor(imgSrcList.size() / countOfLine))), BufferedImage.TYPE_INT_RGB);
+        if (imgSrcList == null || savePath == null || savePath.trim().length() == 0 || countOfLine == 0) return false;
+        BufferedImage lastImage = new BufferedImage(cutWidth * countOfLine, cutHeight * (int)( Math.floor(imgSrcList.size() *1.0 / countOfLine * 1.0)), BufferedImage.TYPE_INT_RGB);
         String prevSrc = "";
         BufferedImage prevImage = null;
         try {

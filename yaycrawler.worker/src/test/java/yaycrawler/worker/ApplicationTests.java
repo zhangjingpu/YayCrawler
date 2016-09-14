@@ -48,26 +48,33 @@ public class ApplicationTests {
 	@Test
 	public void testSpider()
 	{
-		String seedUrl = "http://floor.0731fdc.com/jggs.php";
-		GenericPageProcessor pageProcessor = new GenericPageProcessor();
-
-		Downloader downloader = new HttpClientDownloader();
-		Scheduler scheduler =new QueueScheduler();
-
-		Site site = pageSiteService.getSite("floor.0731fdc.com");
+//		String seedUrl = "http://floor.0731fdc.com/jggs.php";
+//		GenericPageProcessor pageProcessor = new GenericPageProcessor();
+//
+//		Downloader downloader = new HttpClientDownloader();
+//		Scheduler scheduler =new QueueScheduler();
+//
+//		Site site = pageSiteService.getSite("floor.0731fdc.com");
 	}
 
 	@Test
 	public void testFile() {
-		File dst = new File("d:/dataTmp");
-		for (File file :dst.listFiles()) {
-			if(file.isDirectory()) {
-				File[] files = file.listFiles();
-				if(files.length > 20) {
-					System.out.println(file.getName());
+		final String path = "d:/";
+		File dst = new File("dataTmp");
+		if(dst != null && dst.isDirectory()) {
+			File[] dstfiles = dst.listFiles();
+			if(dstfiles!= null && dstfiles.length == 0) {
+				for (File file :dstfiles) {
+					if(file.isDirectory()) {
+						File[] files = file.listFiles();
+						if(files != null && files.length > 20) {
+							System.out.println(file.getName());
+						}
+					}
 				}
 			}
 		}
+
 	}
 
 }
