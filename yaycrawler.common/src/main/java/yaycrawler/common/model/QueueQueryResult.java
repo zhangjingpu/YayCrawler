@@ -10,6 +10,15 @@ public class QueueQueryResult {
     private long totalPages;
     private long total;
 
+    public QueueQueryResult() {
+    }
+
+    public QueueQueryResult(List<CrawlerRequest> rows, long totalPages, long total) {
+        this.rows = rows;
+        this.totalPages = totalPages;
+        this.total = total;
+    }
+
     public List<CrawlerRequest> getRows() {
         return rows;
     }

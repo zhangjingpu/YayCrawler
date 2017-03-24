@@ -1,4 +1,4 @@
-package yaycrawler.master.service;
+package yaycrawler.master.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.*;
@@ -12,20 +12,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.DefaultTypedTuple;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import yaycrawler.common.model.CrawlerRequest;
 import yaycrawler.common.model.CrawlerResult;
 import yaycrawler.common.model.QueueQueryParam;
 import yaycrawler.common.model.QueueQueryResult;
+import yaycrawler.master.service.ICrawlerQueueService;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
 
 /**
+ * 看需要选择开启 此队列服务
  * Created by yuananyun on 2016/8/7.
  */
-@Component
+//@Service
 public class RedisCrawlerQueueService implements ICrawlerQueueService {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisCrawlerQueueService.class);

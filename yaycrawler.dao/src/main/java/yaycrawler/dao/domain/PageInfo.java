@@ -27,14 +27,14 @@ public class PageInfo {
     private String pageUrl;
 
     @NotNull
-    @Column(name = "urlRgx", columnDefinition = "varchar(100)")
+    @Column(name = "urlRgx", columnDefinition = "varchar(1000)")
     private String urlRgx;
 
     @NotNull
     @Column(name = "method", columnDefinition = "varchar(10) default 'GET' ")
     private String method;
 
-    @Column(name = "paramsJson", columnDefinition = "varchar(500)")
+    @Column(name = "paramsJson", columnDefinition = "text")
     private String paramsJson;
 
     @NotNull
