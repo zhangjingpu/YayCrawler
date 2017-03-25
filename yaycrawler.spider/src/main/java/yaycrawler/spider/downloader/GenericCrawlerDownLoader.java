@@ -6,11 +6,15 @@ import us.codecraft.webmagic.Page;
 import us.codecraft.webmagic.Request;
 import us.codecraft.webmagic.Task;
 import us.codecraft.webmagic.downloader.AbstractDownloader;
+import yaycrawler.common.model.CrawlerCookie;
+import yaycrawler.common.utils.UrlUtils;
 import yaycrawler.dao.domain.PageInfo;
 import yaycrawler.dao.domain.SiteCookie;
 import yaycrawler.dao.service.PageCookieService;
 import yaycrawler.dao.service.PageParserRuleService;
+import yaycrawler.spider.cookie.DynamicCookieManager;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -23,9 +27,11 @@ public class GenericCrawlerDownLoader extends AbstractDownloader {
 
     @Autowired
     private PageParserRuleService pageParserRuleService;
-
     @Autowired
     private PageCookieService pageCookieService;
+
+    @Autowired
+    private DynamicCookieManager dynamicCookieManager;
 
     private CrawlerHttpClientDownloader httpClientDownloader;
     private PhantomJsMockDonwnloader mockDonwnloader;
@@ -45,12 +51,21 @@ public class GenericCrawlerDownLoader extends AbstractDownloader {
             pageInfo = (PageInfo) request.getExtra("$pageInfo");
         }
         boolean isJsRendering = pageInfo != null && "1".equals(pageInfo.getIsJsRendering());
-        SiteCookie siteCookie = pageCookieService.getCookieByUrl(request.getUrl());
-        String cookie =null;
+        String pageUrl = request.getUrl();
+        SiteCookie siteCookie = pageCookieService.getCookieByUrl(pageUrl);
+        String cookie ="";
         if(siteCookie!=null) {
             cookie=siteCookie.getCookie();
             String cookieId = siteCookie.getId();
             request.putExtra("cookieId", cookieId);
+        }
+        //获取动态的cookies
+        List<CrawlerCookie> dynamicCookieList = dynamicCookieManager.getCookiesByDomain(UrlUtils.getDomain(pageUrl));
+        if(dynamicCookieList!=null){
+            cookie += ";";
+            for (CrawlerCookie crawlerCookie : dynamicCookieList) {
+                cookie += String.format("%s=%s", crawlerCookie.getName(), crawlerCookie.getValue());
+            }
         }
         Page page = !isJsRendering ? httpClientDownloader.download(request, task, cookie) : mockDonwnloader.download(request, task, cookie);
         if (!isJsRendering && (!"post".equalsIgnoreCase(request.getMethod())&&page != null) && redirectPattern.matcher(page.getRawText()).find())
