@@ -6,7 +6,8 @@
     <bean id="workerRefreshTask" class="yaycrawler.master.quartz.WorkerRefreshTask">
     </bean>
     <bean id="breakedQueueRefreshTask" class="yaycrawler.master.quartz.BreakedQueueRefreshTask">
-        <property name="queueService" ref="redisCrawlerQueueService"></property>
+        <!--<property name="queueService" ref="redisCrawlerQueueService"></property>-->
+        <property name="queueService" ref="mysqlQueueService"></property>
         <property name="queueTimeOut" value="${task.queue.timeout:3600000}"></property>
     </bean>
 

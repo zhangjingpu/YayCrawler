@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import yaycrawler.common.model.CrawlerRequest;
 
 import javax.persistence.*;
-import java.security.Timestamp;
+import java.util.Date;
 import java.util.Map;
 
 /**
@@ -44,28 +44,28 @@ public class CrawlerTask {
     @Column(name = "extend_data", columnDefinition = "text")
     private String extendData;
 
-    @Column(name = "created_time",columnDefinition = " default current_timestamp()")
+    @Column(name = "created_time", columnDefinition = " datetime default current_timestamp()")
     @Temporal(TemporalType.TIMESTAMP)
-    private Timestamp createdTime;
+    private Date createdTime;
 
     @Column(name = "started_time")
     @Temporal(TemporalType.TIMESTAMP)
-    private Timestamp startedTime;
+    private Date startedTime;
 
     @Column(name = "completed_time")
     @Temporal(TemporalType.TIMESTAMP)
-    private Timestamp completedTime;
+    private Date completedTime;
 
     /**
      * 状态，未开始：-2；运行中：-1；失败：0；成功：1；超时：2
      */
-    @Column(name = "status", columnDefinition = "tinyint default -1")
+    @Column(name = "status", columnDefinition = "tinyint default -2")
     private Integer status;
 
     /**
      * 表示任务在哪个worker上执行
      */
-    @Column(name = "worker_id",columnDefinition = "varchar(100)")
+    @Column(name = "worker_id", columnDefinition = "varchar(100)")
     private String workerId;
 
     /**
@@ -121,21 +121,6 @@ public class CrawlerTask {
         this.data = data;
     }
 
-    public Timestamp getCreatedTime() {
-        return createdTime;
-    }
-
-    public void setCreatedTime(Timestamp createdTime) {
-        this.createdTime = createdTime;
-    }
-
-    public Timestamp getCompletedTime() {
-        return completedTime;
-    }
-
-    public void setCompletedTime(Timestamp completedTime) {
-        this.completedTime = completedTime;
-    }
 
     public Integer getStatus() {
         return status;
@@ -204,11 +189,28 @@ public class CrawlerTask {
         this.message = message;
     }
 
-    public Timestamp getStartedTime() {
+
+    public Date getCreatedTime() {
+        return createdTime;
+    }
+
+    public void setCreatedTime(Date createdTime) {
+        this.createdTime = createdTime;
+    }
+
+    public Date getStartedTime() {
         return startedTime;
     }
 
-    public void setStartedTime(Timestamp startedTime) {
+    public void setStartedTime(Date startedTime) {
         this.startedTime = startedTime;
+    }
+
+    public Date getCompletedTime() {
+        return completedTime;
+    }
+
+    public void setCompletedTime(Date completedTime) {
+        this.completedTime = completedTime;
     }
 }

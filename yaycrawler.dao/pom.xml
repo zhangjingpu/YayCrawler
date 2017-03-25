@@ -28,7 +28,6 @@
         <dependency>
             <groupId>com.yaycrawler</groupId>
             <artifactId>yaycrawler-common</artifactId>
-            <version>${yaycrawler.version}</version>
         </dependency>
         <dependency>
             <groupId>com.yaycrawler</groupId>

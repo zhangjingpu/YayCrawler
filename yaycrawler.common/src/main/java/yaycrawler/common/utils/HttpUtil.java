@@ -1,19 +1,18 @@
 package yaycrawler.common.utils;
 
 import com.alibaba.fastjson.JSON;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.config.ConnectionConfig;
 import org.apache.http.config.Registry;
@@ -24,7 +23,6 @@ import org.apache.http.conn.socket.LayeredConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContexts;
-import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.cookie.CookieOrigin;
 import org.apache.http.impl.client.BasicCookieStore;
@@ -32,7 +30,10 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.impl.cookie.BestMatchSpec;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -44,83 +45,26 @@ import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 public class HttpUtil {
-
-    private static final Log log = LogFactory.getLog(HttpUtil.class);
-
+    private static Logger logger = LoggerFactory.getLogger(HttpUtil.class);
     private static int bufferSize = 1024;
-
     private static volatile HttpUtil instance;
-
     private ConnectionConfig connConfig;
-
     private SocketConfig socketConfig;
-
     private ConnectionSocketFactory plainSF;
-
     private KeyStore trustStore;
-
     private SSLContext sslContext;
-
     private LayeredConnectionSocketFactory sslSF;
-
     private Registry<ConnectionSocketFactory> registry;
-
     private PoolingHttpClientConnectionManager connManager;
-
     private volatile HttpClient client;
-
     private volatile BasicCookieStore cookieStore;
-
     public static final String defaultEncoding = "utf-8";
 
-    private static List<NameValuePair> paramsConverter(Map<String, String> params) {
-        List<NameValuePair> nvps = new LinkedList<NameValuePair>();
-        Set<Entry<String, String>> paramsSet = params.entrySet();
-        for (Entry<String, String> paramEntry : paramsSet) {
-            nvps.add(new BasicNameValuePair(paramEntry.getKey(), paramEntry.getValue()));
-        }
-        return nvps;
-    }
-
-    public static String readStream(InputStream in, String encoding) {
-        if (in == null) {
-            return null;
-        }
-            InputStreamReader inReader = null;
-        try {
-            if (encoding == null) {
-                inReader = new InputStreamReader(in, defaultEncoding);
-            } else {
-                inReader = new InputStreamReader(in, encoding);
-            }
-            char[] buffer = new char[bufferSize];
-            int readLen = 0;
-            StringBuffer sb = new StringBuffer();
-            while ((readLen = inReader.read(buffer)) != -1) {
-                sb.append(buffer, 0, readLen);
-            }
-//            inReader.close();
-            return sb.toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (inReader != null) try {
-                inReader.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return null;
-    }
 
     private HttpUtil() {
         //设置连接参数
@@ -135,11 +79,7 @@ public class HttpUtil {
             sslContext = SSLContexts.custom().useTLS().loadTrustMaterial(trustStore, new AnyTrustStrategy()).build();
             sslSF = new SSLConnectionSocketFactory(sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
             registryBuilder.register("https", sslSF);
-        } catch (KeyStoreException e) {
-            throw new RuntimeException(e);
-        } catch (KeyManagementException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchAlgorithmException e) {
+        } catch (KeyStoreException | KeyManagementException | NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
         registry = registryBuilder.build();
@@ -147,14 +87,12 @@ public class HttpUtil {
         connManager = new PoolingHttpClientConnectionManager(registry);
         connManager.setDefaultConnectionConfig(connConfig);
         connManager.setDefaultSocketConfig(socketConfig);
-        connManager.setMaxTotal(200);
+        connManager.setMaxTotal(400);
         connManager.setDefaultMaxPerRoute(connManager.getMaxTotal());
         //指定cookie存储对象
         cookieStore = new BasicCookieStore();
         //构建客户端
         client = HttpClientBuilder.create().setDefaultCookieStore(cookieStore).setConnectionManager(connManager).build();
-
-
     }
 
     public static HttpUtil getInstance() {
@@ -166,82 +104,30 @@ public class HttpUtil {
         }
     }
 
-    public InputStream doGet(String url) throws URISyntaxException, ClientProtocolException, IOException {
-        HttpResponse response = this.doGet(url, null);
-        return response != null ? response.getEntity().getContent() : null;
-    }
-
-    public String doGetForString(String url, Header... headers) throws URISyntaxException, ClientProtocolException, IOException {
-        return HttpUtil.readStream(this.doGet(url), null);
-    }
-
-    public InputStream doGetForStream(String url, Map<String, String> queryParams) throws URISyntaxException, ClientProtocolException, IOException {
-        HttpResponse response = this.doGet(url, queryParams);
-        return response != null ? response.getEntity().getContent() : null;
-    }
-
-    public String doGetForString(String url, Map<String, String> queryParams) throws URISyntaxException, ClientProtocolException, IOException {
-        return HttpUtil.readStream(this.doGetForStream(url, queryParams), null);
-    }
-
-
-    public Map<String, Object> doGetForMap(String url, Map<String, String> queryParams, List<Header> headerList) throws IOException, URISyntaxException {
-        HttpResponse response = doGet(url, queryParams, headerList);
-        if (200 == response.getStatusLine().getStatusCode()) {
-            String data = HttpUtil.readStream(response.getEntity().getContent(), "utf-8");
-            Map map =  JSON.parseObject(data, Map.class);
-            return map;
-        } else throw new IOException("请求出现错误：" + response.getStatusLine().getStatusCode());
-    }
-
-    public Map<String, Object> doPostForMap(String url, Map<String, String> queryParams, Map<String, String> formParams,List<Header> headerList) throws IOException, URISyntaxException {
-        HttpResponse response = doPost(url,queryParams,null,headerList);
-        if (200 == response.getStatusLine().getStatusCode()) {
-            String data = HttpUtil.readStream(response.getEntity().getContent(), "utf-8");
-            Map map = JSON.parseObject(data, Map.class);
-            return map;
-        } else throw new IOException("请求出现错误：" + response.getStatusLine().getStatusCode());
-    }
-
-    private void saveCookies(String url, HttpResponse response) {
-        Header[] cookieHeaders = response.getHeaders("Set-Cookie");
-        if (cookieHeaders == null || cookieHeaders.length == 0) return;
-
-        String domain = getDomain(url);
-        String key, value, expires;
-        String path = "/";
-        for (int i = 0; i < cookieHeaders.length; i++) {
-            String valueStr = cookieHeaders[i].getValue();
-            String[] valueArray = valueStr.split(";");
-            String[] pairArray = valueArray[0].split("=");
-            key = pairArray[0];
-            value = pairArray[1];
-            for (int j = 1; j < pairArray.length; j++) {
-                String pair = pairArray[j];
-                if (pair.contains("Expires=")) {
-                    pairArray = pair.split("=");
-                    expires = pairArray[1];
-
-                } else if (pair.contains("Path=")) {
-                    pairArray = pair.split("=");
-                    path = pairArray[1];
-                }
-            }
-            if (!StringUtils.isBlank(key) && !StringUtils.isBlank(value))
-                setCookie(key, value, domain, path, false);
+    /**
+     * 发送请求获取响应中的cookie，如： Set-Cookie:WEB=97324480; path=/
+     *
+     * @param cookieUrl
+     * @param headers
+     * @return
+     */
+    public List<Cookie> doGetCookies(String cookieUrl, ArrayList<Header> headers) {
+        try {
+            return getCookiesFromResponse(cookieUrl, doGet(cookieUrl, null, headers));
+        } catch (Exception ex) {
+            logger.error(ex.getMessage(), ex);
+            return null;
         }
     }
 
-    public  String getDomain(String url) {
-        if (StringUtils.isBlank(url)) return null;
-        String domain = "";
-        Pattern p = Pattern.compile("(?<=http://|\\.)[^.]*?\\.(com|cn|net|org|biz|info|cc|tv)", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = p.matcher(url);
-        if (matcher.find())
-            domain = matcher.group();
-        return domain;
+    public List<Cookie> doPostCookies(String cookieUrl, Map<String, String> formParams, List<Header> headerList) {
+        try {
+            return getCookiesFromResponse(cookieUrl, doPost(cookieUrl, null, formParams, headerList));
+        } catch (Exception ex) {
+            logger.error(ex.getMessage(), ex);
+            return null;
+        }
     }
-
 
     /**
      * 基本的Get请求
@@ -253,30 +139,20 @@ public class HttpUtil {
      * @throws IOException
      * @throws ClientProtocolException
      */
-    public HttpResponse doGet(String url, Map<String, String> queryParams, List<Header> headerList,Map... map) throws URISyntaxException, IOException {
+    public HttpResponse doGet(String url, Map<String, String> queryParams, List<Header> headerList) throws URISyntaxException, IOException {
         HttpGet gm = new HttpGet();
-        RequestConfig.Builder requestConfig = RequestConfig.custom()
-//                .setProxy(proxy)
-                .setConnectTimeout(5000).setConnectionRequestTimeout(5000)
-                .setSocketTimeout(5000);
-//                .build();
-
-        if(map.length > 0) {
-            HttpHost proxy = new HttpHost(map[0].get("ip").toString().trim(),Integer.parseInt(map[0].get("port").toString().trim()), "http");
-            requestConfig.setProxy(proxy);
-        }
-        gm.setConfig(requestConfig.build());
-        if (headerList != null && headerList.size()> 0)
-            gm.setHeaders(headerList.toArray(new Header[]{}));
+        RequestConfig requestConfig = getRequestConfig();
+        gm.setConfig(requestConfig);
+        setHeaders(headerList, gm);
         URIBuilder builder = new URIBuilder(url);
         //填入查询参数
         if (queryParams != null && !queryParams.isEmpty()) {
             builder.setParameters(HttpUtil.paramsConverter(queryParams));
         }
         gm.setURI(builder.build());
-        HttpResponse response = client.execute(gm);
+        HttpResponse response = execute(gm);
         //保存Cookies
-        saveCookies(url, response);
+//        saveCookies(url, response);
         return response;
     }
 
@@ -284,13 +160,29 @@ public class HttpUtil {
         return doGet(url, queryParams, null);
     }
 
-    public InputStream doPostForStream(String url, Map<String, String> queryParams) throws URISyntaxException, ClientProtocolException, IOException {
-        HttpResponse response = this.doPost(url, queryParams, null,null);
+    public InputStream doGetForStream(String url, Map<String, String> queryParams) throws URISyntaxException, IOException {
+        HttpResponse response = this.doGet(url, queryParams);
         return response != null ? response.getEntity().getContent() : null;
     }
 
-    public InputStream doPostForStream(String url, Map<String, String> queryParams,List<Header> headers) throws URISyntaxException, ClientProtocolException, IOException {
-        HttpResponse response = this.doPost(url, queryParams, null,headers);
+
+    public Map<String, Object> doGetForMap(String url, Map<String, String> queryParams, List<Header> headerList) throws IOException, URISyntaxException {
+        HttpResponse response = doGet(url, queryParams, headerList);
+        return readResponseToMap(response);
+    }
+
+    public Map<String, Object> doPostForMap(String url, Map<String, String> queryParams, Map<String, String> formParams, List<Header> headerList) throws IOException, URISyntaxException {
+        HttpResponse response = doPost(url, queryParams, formParams, headerList);
+        return readResponseToMap(response);
+    }
+
+    public InputStream doPostForStream(String url, Map<String, String> queryParams) throws URISyntaxException, ClientProtocolException, IOException {
+        HttpResponse response = this.doPost(url, queryParams, null, null);
+        return response != null ? response.getEntity().getContent() : null;
+    }
+
+    public InputStream doPostForStream(String url, Map<String, String> queryParams, List<Header> headers) throws URISyntaxException, ClientProtocolException, IOException {
+        HttpResponse response = this.doPost(url, queryParams, null, headers);
         return response != null ? response.getEntity().getContent() : null;
     }
 
@@ -298,12 +190,12 @@ public class HttpUtil {
         return HttpUtil.readStream(this.doPostForStream(url, queryParams), null);
     }
 
-    public String doPostForString(String url, Map<String, String> queryParams,List<Header> headers) throws URISyntaxException, ClientProtocolException, IOException {
-        return HttpUtil.readStream(this.doPostForStream(url, queryParams,headers), null);
+    public String doPostForString(String url, Map<String, String> queryParams, List<Header> headers) throws URISyntaxException, ClientProtocolException, IOException {
+        return HttpUtil.readStream(this.doPostForStream(url, queryParams, headers), null);
     }
 
     public InputStream doPostForStream(String url, Map<String, String> queryParams, Map<String, String> formParams) throws URISyntaxException, ClientProtocolException, IOException {
-        HttpResponse response = this.doPost(url, queryParams, formParams,null);
+        HttpResponse response = this.doPost(url, queryParams, formParams, null);
         return response != null ? response.getEntity().getContent() : null;
     }
 
@@ -322,9 +214,10 @@ public class HttpUtil {
      * @throws IOException
      * @throws ClientProtocolException
      */
-    public HttpResponse doPost(String url, Map<String, String> queryParams, Map<String, String> formParams,List<Header> headerList) throws URISyntaxException, ClientProtocolException, IOException {
+    public HttpResponse doPost(String url, Map<String, String> queryParams, Map<String, String> formParams, List<Header> headerList) throws URISyntaxException, IOException {
         HttpPost pm = new HttpPost();
         URIBuilder builder = new URIBuilder(url);
+        setHeaders(headerList, pm);
         //填入查询参数
         if (queryParams != null && !queryParams.isEmpty()) {
             builder.setParameters(HttpUtil.paramsConverter(queryParams));
@@ -334,47 +227,14 @@ public class HttpUtil {
         if (formParams != null && !formParams.isEmpty()) {
             pm.setEntity(new UrlEncodedFormEntity(HttpUtil.paramsConverter(formParams)));
         }
-
-        //设置超时
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(5000).setConnectionRequestTimeout(5000)
-                .setSocketTimeout(5000).build();
+        RequestConfig requestConfig = getRequestConfig();
         pm.setConfig(requestConfig);
-
-        return client.execute(pm);
+        HttpResponse response = execute(pm);
+        //保存Cookies
+//        saveCookies(url, response);
+        return response;
     }
 
-    /**
-     * 多块Post请求
-     * @param url 请求url
-     * @param queryParams 请求头的查询参数
-     * @param formParts post表单的参数,支持字符串-文件(FilePart)和字符串-字符串(StringPart)形式的参数
-     * @param maxCount 最多尝试请求的次数
-     * @return
-     * @throws URISyntaxException
-     * @throws ClientProtocolException
-     * @throws HttpException
-     * @throws IOException
-     */
-//	public HttpResponse multipartPost(String url, Map<String, String> queryParams, List<FormBodyPart> formParts) throws URISyntaxException, ClientProtocolException, IOException{
-//		HttpPost pm= new HttpPost();
-//		URIBuilder builder = new URIBuilder(url);
-//		//填入查询参数
-//		if (queryParams!=null && !queryParams.isEmpty()){
-//			builder.setParameters(HttpUtil.paramsConverter(queryParams));
-//		}
-//		pm.setURI(builder.build());
-//		//填入表单参数
-//		if (formParts!=null && !formParts.isEmpty()){
-//			MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
-//			entityBuilder = entityBuilder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-//			for (FormBodyPart formPart : formParts) {
-//				entityBuilder = entityBuilder.addPart(formPart.getName(), formPart.getBody());
-//			}
-//			pm.setEntity(entityBuilder.build());
-//		}
-//		return client.execute(pm);
-//	}
 
     /**
      * 获取当前Http客户端状态中的Cookie
@@ -414,62 +274,165 @@ public class HttpUtil {
         return retVal;
     }
 
-    /**
-     * 批量设置Cookie
-     *
-     * @param cookies   cookie键值对图
-     * @param domain    作用域 不可为空
-     * @param path      路径 传null默认为"/"
-     * @param useSecure 是否使用安全机制 传null 默认为false
-     * @return 是否成功设置cookie
-     */
-    public boolean setCookie(Map<String, String> cookies, String domain, String path, Boolean useSecure) {
-        synchronized (cookieStore) {
-            if (domain == null) {
-                return false;
+    private RequestConfig getRequestConfig() {
+//        HttpHost proxy = new HttpHost("127.0.0.1", 8888);
+        RequestConfig.Builder build = RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES)//.setProxy(proxy)
+                .setConnectTimeout(3000).setConnectionRequestTimeout(3000)
+                .setSocketTimeout(3000);
+        return build.build();
+    }
+
+    private void setHeaders(List<Header> headerList, HttpRequestBase request) {
+        if (headerList != null)
+            headerList.add(new BasicHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36"));
+        if (headerList != null && headerList.size() > 0) {
+            Header[] headerArray = new Header[headerList.size()];
+            for (int i = 0; i < headerList.size(); i++) {
+                headerArray[i] = headerList.get(i);
             }
-            if (path == null) {
-                path = "/";
-            }
-            if (useSecure == null) {
-                useSecure = false;
-            }
-            if (cookies == null || cookies.isEmpty()) {
-                return true;
-            }
-            Set<Entry<String, String>> set = cookies.entrySet();
-            String key = null;
-            String value = null;
-            for (Entry<String, String> entry : set) {
-                key = entry.getKey();
-                value = entry.getValue();
-                if (key == null || key.isEmpty() || value == null || value.isEmpty()) {
-                    throw new IllegalArgumentException("cookies key and value both can not be empty");
-                }
-                BasicClientCookie cookie = new BasicClientCookie(key, value);
-                cookie.setDomain(domain);
-                cookie.setPath(path);
-                cookie.setSecure(useSecure);
-                cookieStore.addCookie(cookie);
-            }
-            return true;
+            request.setHeaders(headerArray);
         }
     }
 
-    /**
-     * 设置单个Cookie
-     *
-     * @param key       Cookie键
-     * @param value     Cookie值
-     * @param domain    作用域 不可为空
-     * @param path      路径 传null默认为"/"
-     * @param useSecure 是否使用安全机制 传null 默认为false
-     * @return 是否成功设置cookie
-     */
-    public boolean setCookie(String key, String value, String domain, String path, Boolean useSecure) {
-        Map<String, String> cookies = new HashMap<String, String>();
-        cookies.put(key, value);
-        return setCookie(cookies, domain, path, useSecure);
+    private HttpResponse execute(HttpRequestBase request) throws IOException {
+        try {
+            HttpResponse response = client.execute(request);
+            if (response == null)
+                logger.error("no exception,but response is null!");
+            return response;
+        } catch (IOException e) {
+            request.abort();
+            throw e;
+        }
     }
+
+    private static List<NameValuePair> paramsConverter(Map<String, String> params) {
+        List<NameValuePair> nvps = new LinkedList<NameValuePair>();
+        Set<Entry<String, String>> paramsSet = params.entrySet();
+        for (Entry<String, String> paramEntry : paramsSet) {
+            nvps.add(new BasicNameValuePair(paramEntry.getKey(), paramEntry.getValue()));
+        }
+        return nvps;
+    }
+
+    private static String readStream(InputStream in, String encoding) {
+        if (in == null) {
+            return null;
+        }
+        InputStreamReader inReader = null;
+        try {
+            if (encoding == null) {
+                inReader = new InputStreamReader(in, defaultEncoding);
+            } else {
+                inReader = new InputStreamReader(in, encoding);
+            }
+            char[] buffer = new char[bufferSize];
+            int readLen = 0;
+            StringBuffer sb = new StringBuffer();
+            while ((readLen = inReader.read(buffer)) != -1) {
+                sb.append(buffer, 0, readLen);
+            }
+//            inReader.close();
+            return sb.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (inReader != null) try {
+                inReader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+
+    private static List<Cookie> getCookiesFromResponse(String url, HttpResponse response) {
+        Header[] cookieHeaders = response.getHeaders("Set-Cookie");
+        if (cookieHeaders == null || cookieHeaders.length == 0) return null;
+
+        List<Cookie> cookieList = new ArrayList<>();
+        String domain = UrlUtils.getDomain(url);
+        String key, value, expires;
+        String path = "/";
+        for (int i = 0; i < cookieHeaders.length; i++) {
+            String valueStr = cookieHeaders[i].getValue();
+            String[] valueArray = valueStr.split(";");
+            String[] pairArray = valueArray[0].split("=");
+            key = pairArray[0];
+            value = pairArray[1];
+            for (int j = 1; j < pairArray.length; j++) {
+                String pair = pairArray[j];
+                if (pair.contains("Expires=")) {
+                    pairArray = pair.split("=");
+                    expires = pairArray[1];
+
+                } else if (pair.contains("Path=")) {
+                    pairArray = pair.split("=");
+                    path = pairArray[1];
+                }
+            }
+            BasicClientCookie cookie = new BasicClientCookie(key, value);
+            cookie.setDomain(domain);
+            cookie.setPath(path);
+            cookie.setSecure(false);
+            cookieList.add(cookie);
+        }
+        return cookieList;
+    }
+
+    /**
+     * 保存response中返回的cookie
+     *
+     * @param url
+     * @param response
+     */
+    private void saveCookies(String url, HttpResponse response) {
+        List<Cookie> cookieList = getCookiesFromResponse(url, response);
+        if (cookieList != null)
+            for (Cookie cookie : cookieList) {
+                cookieStore.addCookie(cookie);
+            }
+    }
+
+    /**
+     * 从响应中读取数据并转换为Map
+     *
+     * @param response
+     * @return
+     * @throws IOException
+     */
+    private Map readResponseToMap(HttpResponse response) throws IOException {
+        if (200 == response.getStatusLine().getStatusCode()) {
+            String data = HttpUtil.readStream(response.getEntity().getContent(), "utf-8");
+            return JSON.parseObject(data, Map.class);
+        } else throw new IOException("请求出现错误：" + response.getStatusLine().getStatusCode());
+    }
+
+//    private  String getDomain(String url) {
+//        if (StringUtils.isBlank(url)) return null;
+//        String domain = "";
+//        Pattern p = Pattern.compile("(?<=http://|\\.)[^.]*?\\.(com|cn|net|org|biz|info|cc|tv)", Pattern.CASE_INSENSITIVE);
+//        Matcher matcher = p.matcher(url);
+//        if (matcher.find())
+//            domain = matcher.group();
+//        return domain;
+//    }
+//    /**
+//     * 设置单个Cookie
+//     *
+//     * @param key       Cookie键
+//     * @param value     Cookie值
+//     * @param domain    作用域 不可为空
+//     * @param path      路径 传null默认为"/"
+//     * @param useSecure 是否使用安全机制 传null 默认为false
+//     * @return 是否成功设置cookie
+//     */
+//    private boolean setCookie(String key, String value, String domain, String path, Boolean useSecure) {
+//        Map<String, String> cookies = new HashMap<String, String>();
+//        cookies.put(key, value);
+//        return setCookie(cookies, domain, path, useSecure);
+//    }
+
 
 }

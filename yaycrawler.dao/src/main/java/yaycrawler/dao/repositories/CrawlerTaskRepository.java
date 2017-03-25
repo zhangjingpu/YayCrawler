@@ -15,15 +15,6 @@ import yaycrawler.dao.domain.CrawlerTask;
 @Repository
 public interface CrawlerTaskRepository extends PagingAndSortingRepository<CrawlerTask, String> {
 
-//    /**
-//     * 查询待运行的任务
-//     *
-//     * @param take
-//     * @return
-//     */
-//    @Query(value = "select * from crawler_task where status=-2 order by created_time  limit :offset,:take", nativeQuery = true)
-//    List<CrawlerTask> findWaitingTasks(@Param("offset") long offset,@Param("take") long take);
-
 
     /**
      * 将任务修改为运行中
@@ -32,7 +23,7 @@ public interface CrawlerTaskRepository extends PagingAndSortingRepository<Crawle
      * @param workerId
      */
     @Modifying(clearAutomatically = true)
-    @Query("update crawler_task set status =-1,worker_id=:workerId,started_time=current_timestamp()  where code =:code")
+    @Query("update CrawlerTask set status =-1,workerId=:workerId,startedTime=current_timestamp() where code =:code")
     void updateTaskToRunningStatus(@Param("code") String code, @Param("workerId") String workerId);
 
 
@@ -42,8 +33,8 @@ public interface CrawlerTaskRepository extends PagingAndSortingRepository<Crawle
      * @param code
      */
     @Modifying(clearAutomatically = true)
-    @Query("update crawler_task set status =0,message=:message,completed_time=current_timestamp() where code =:code")
-    void updateTaskToFailureStatus(@Param("code") String code,@Param("message")String message);
+    @Query("update CrawlerTask set status =0,message=:message,completedTime=current_timestamp() where code =:code")
+    void updateTaskToFailureStatus(@Param("code") String code, @Param("message") String message);
 
     /**
      * 将任务修改为成功状态
@@ -51,7 +42,7 @@ public interface CrawlerTaskRepository extends PagingAndSortingRepository<Crawle
      * @param code
      */
     @Modifying(clearAutomatically = true)
-    @Query("update crawler_task set status =1,completed_time=current_timestamp() where code =:code")
+    @Query("update CrawlerTask set status =1,completedTime=current_timestamp() where code =:code")
     void updateTaskToSuccessStatus(@Param("code") String code);
 
     /**
@@ -60,17 +51,18 @@ public interface CrawlerTaskRepository extends PagingAndSortingRepository<Crawle
      * @param code
      */
     @Modifying(clearAutomatically = true)
-    @Query("update crawler_task set status =2 where code =:code")
+    @Query(value = "update CrawlerTask set status =2 where code =:code")
     void updateTaskToTimeoutStatus(@Param("code") String code);
 
     /**
      * 刷新超时队列（把超时的运行中队列任务重新加入待执行队列）
+     *
      * @param timeout
      */
     @Modifying(clearAutomatically = true)
-    @Query("update crawler_task set status =-2 where status=2 and current_timestamp()-started_time>:timeout")
+    @Query("update CrawlerTask set status =-2 where status=2 and current_timestamp()-startedTime>:timeout")
     void refreshBreakedQueue(@Param("timeout") long timeout);
 
 
-   Page<CrawlerTask> findByStatus(int status, Pageable pageable);
+    Page<CrawlerTask> findAllByStatus(int status, Pageable pageable);
 }
