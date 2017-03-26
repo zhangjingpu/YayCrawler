@@ -1,7 +1,10 @@
 package yaycrawler.common.model;
+import com.alibaba.fastjson.JSON;
+import org.apache.commons.codec.digest.DigestUtils;
 import yaycrawler.common.utils.UrlUtils;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -20,13 +23,13 @@ public class CrawlerRequest implements Serializable{
      *
      * startTime:开始时间
      workerId:分配workerID
-     private String message;
+     message;
      crawlerRequests
      hashCode
      * @return
      */
     public Map getExtendMap() {
-        return extendMap;
+        return extendMap==null?new HashMap() :extendMap ;
     }
 
     public void setExtendMap(Map extendMap) {
@@ -34,7 +37,8 @@ public class CrawlerRequest implements Serializable{
     }
 
     public String getHashCode() {
-        return hashCode;
+        if(hashCode!=null) return hashCode;
+        return DigestUtils.sha1Hex(getUniqueUrl(this));
     }
 
     public void setHashCode(String hashCode) {
@@ -95,6 +99,23 @@ public class CrawlerRequest implements Serializable{
                 "url='" + url + '\'' +
                 ", method='" + method + '\'' +
                 '}';
+    }
+
+    /**
+     * 为爬虫任务生成一个唯一的url
+     *
+     * @param crawlerRequest 请求
+     * @return
+     */
+    private String getUniqueUrl(CrawlerRequest crawlerRequest) {
+        if (crawlerRequest.getData() != null && crawlerRequest.getData().size() != 0) {
+            StringBuilder urlBuilder = new StringBuilder(crawlerRequest.getUrl().trim());
+            String random = DigestUtils.sha1Hex(JSON.toJSONString(crawlerRequest.getData()));
+            urlBuilder.append(String.format("%s%s=%s", urlBuilder.indexOf("?") > 0 ? "&" : "?", "random", random));
+            return urlBuilder.toString();
+        } else {
+            return crawlerRequest.getUrl();
+        }
     }
 
 }

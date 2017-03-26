@@ -50,7 +50,7 @@ public class GDGSCookieFetcher implements ICookieProvider {
     public List<CrawlerCookie> getCookies() {
         try {
             //如果少于5分钟则返回缓存
-            if (cachedCookieList != null && System.currentTimeMillis() - lastFetchTime < (5 * 60 * 1000))
+            if (cachedCookieList != null && System.currentTimeMillis() - lastFetchTime < (1 * 60 * 1000))
                 return cachedCookieList;
 
             SiteAccount account = siteAccountRepository.findOneByDomain(DOMAIN);

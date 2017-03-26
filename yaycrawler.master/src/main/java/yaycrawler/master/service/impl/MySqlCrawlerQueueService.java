@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import yaycrawler.common.model.CrawlerRequest;
 import yaycrawler.common.model.CrawlerResult;
 import yaycrawler.common.model.QueueQueryParam;
@@ -15,6 +16,7 @@ import yaycrawler.dao.repositories.CrawlerTaskRepository;
 import yaycrawler.master.service.ICrawlerQueueService;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -22,6 +24,7 @@ import java.util.List;
  * Created by  yuananyun on 2017/3/24.
  */
 @Service(value = "mysqlQueueService")
+@Transactional
 public class MySqlCrawlerQueueService implements ICrawlerQueueService {
 
     @Autowired
@@ -47,15 +50,15 @@ public class MySqlCrawlerQueueService implements ICrawlerQueueService {
      */
     @Override
     public boolean pushTasksToWaitingQueue(List<CrawlerRequest> crawlerRequests, boolean removeDuplicated) {
-        String code;
         boolean exists;
         for (CrawlerRequest crawlerRequest : crawlerRequests) {
-            code = crawlerRequest.getHashCode();
-            exists = crawlerTaskRepository.exists(code);
+            exists = crawlerTaskRepository.exists(crawlerRequest.getHashCode());
             if (exists && !removeDuplicated) break;
             if (exists)
-                crawlerTaskRepository.delete(code);
+                crawlerTaskRepository.delete(crawlerRequest.getHashCode());
             CrawlerTask task = CrawlerTask.convertFromCrawlerRequest(crawlerRequest);
+            task.setStatus(STATUS_WAITING);
+            task.setCreatedTime(new Date());
             crawlerTaskRepository.save(task);
         }
         return true;
@@ -186,9 +189,14 @@ public class MySqlCrawlerQueueService implements ICrawlerQueueService {
     private List<CrawlerRequest> getCrawlerRequests(List<CrawlerTask> taskList) {
         List<CrawlerRequest> requestList = new ArrayList<>(taskList.size());
         for (CrawlerTask task : taskList) {
-            requestList.add(task.convertToCrawlerRequest());
+            CrawlerRequest crawlerRequest = task.convertToCrawlerRequest();
+            crawlerRequest.getExtendMap().put("startTime", task.getStartedTime());
+            crawlerRequest.getExtendMap().put("extraInfo", task.getMessage());
+            requestList.add(crawlerRequest);
         }
         return requestList;
     }
+
+
 
 }
