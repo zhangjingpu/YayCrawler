@@ -74,7 +74,7 @@ public class CrawlerRequest implements Serializable{
     }
 
     public void setUrl(String url) {
-        this.url = url;
+        this.url = url.trim();
     }
 
     public String getMethod() {
