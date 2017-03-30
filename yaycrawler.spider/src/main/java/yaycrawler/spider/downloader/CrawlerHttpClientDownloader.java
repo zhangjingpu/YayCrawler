@@ -41,6 +41,7 @@ import java.util.regex.Pattern;
 
 /**
  * Created by ucs_yuananyun on 2016/5/23.
+ * modify by bill on 2017/3/30
  */
 @ThreadSafe
 public class CrawlerHttpClientDownloader extends AbstractDownloader {
@@ -91,10 +92,12 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
         CloseableHttpResponse httpResponse = null;
         int statusCode = 0;
         try {
+
             if (StringUtils.isNotBlank(cookie)) {
                 if (headers == null) headers = new HashMap<>();
                 headers.put("Cookie", cookie);
             }
+
             HttpHost proxyHost = null;
             Proxy proxy = null; //TODO
             if (site.getHttpProxyPool() != null && site.getHttpProxyPool().isEnable()) {

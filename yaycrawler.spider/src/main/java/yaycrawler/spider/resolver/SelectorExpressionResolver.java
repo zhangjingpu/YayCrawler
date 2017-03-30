@@ -96,8 +96,8 @@ public class SelectorExpressionResolver {
                     url = ParamResolver.resolverReplaceRequest(request, url, localObject);
                 return url;
             }
-            //应该有四个参数（template,varName,start,end)
-            //
+            //应该有四个参数或五个参数（template,varName,start,end,step)
+            //step是步长
             if ("paging".equals(lowerMethodName)) {
                 List<String> dl = new LinkedList<>();
                 String template = String.valueOf(params[0]);
@@ -107,7 +107,11 @@ public class SelectorExpressionResolver {
                 if(!request.getUrl().equalsIgnoreCase(template.replace(varName + "=?", varName + "=" + start))) {
                     return dl;
                 }
-                for (int i = start; i <= end; i++) {
+                int j = 1;
+                if(params.length == 5) {
+                    j = Integer.parseInt(params[4]);
+                }
+                for (int i = start + 1; i <= end; i = i + j) {
                     dl.add(template.replace(varName + "=?", varName + "=" + i));
                 }
                 return dl;
