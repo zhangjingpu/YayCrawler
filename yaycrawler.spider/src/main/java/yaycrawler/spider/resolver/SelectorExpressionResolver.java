@@ -10,6 +10,7 @@ import us.codecraft.webmagic.selector.Json;
 import us.codecraft.webmagic.selector.PlainText;
 import us.codecraft.webmagic.selector.Selectable;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -71,6 +72,8 @@ public class SelectorExpressionResolver {
                 p = p.substring(1, p.length());
             if (p.endsWith("\""))
                 p = p.substring(0, p.length() - 1);
+            if(p.equals("\\$\\"))
+                p = localObject.toString();
             params[i] = p;
         }
         try {
@@ -101,6 +104,9 @@ public class SelectorExpressionResolver {
                 String varName = String.valueOf(params[1]);
                 int start = Integer.parseInt((String) params[2]);
                 int end = Integer.parseInt((String) params[3]);
+                if(!request.getUrl().equalsIgnoreCase(template.replace(varName + "=?", varName + "=" + start))) {
+                    return dl;
+                }
                 for (int i = start; i <= end; i++) {
                     dl.add(template.replace(varName + "=?", varName + "=" + i));
                 }
@@ -242,6 +248,58 @@ public class SelectorExpressionResolver {
             }
         }
 
+        /**
+         * 加法处理函数：Add
+         */
+        if ("add".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(selectable.get());
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.add(num2).toString();
+            if (params.length == 2)
+                return num1.add(num2).toString();
+            if (params.length == 3)
+                return num1.add(num2).toString();
+        }
+        /**
+         * 除法处理函数：divide
+         */
+        if ("divide".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(selectable.get());
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.divide(num2).toString();
+            if (params.length == 2)
+                return num1.divide(num2,Integer.parseInt(params[1])).toString();
+            if (params.length == 3)
+                return num1.divide(num2,Integer.parseInt(params[1]),Integer.parseInt(params[2])).toString();
+        }
+        /**
+         * 减法处理函数：subtract
+         */
+        if ("subtract".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(selectable.get());
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.subtract(num2).toString();
+            if (params.length == 2)
+                return num1.subtract(num2).toString();
+            if (params.length == 3)
+                return num1.subtract(num2).toString();
+        }
+        /**
+         * 乘法处理函数：multiply
+         */
+        if ("multiply".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(selectable.get());
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.multiply(num2).toString();
+            if (params.length == 2)
+                return num1.multiply(num2).toString();
+            if (params.length == 3)
+                return num1.multiply(num2).toString();
+        }
         return selectable;
     }
 

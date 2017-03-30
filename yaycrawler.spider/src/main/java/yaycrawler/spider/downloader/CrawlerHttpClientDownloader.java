@@ -28,10 +28,11 @@ import us.codecraft.webmagic.Request;
 import us.codecraft.webmagic.Site;
 import us.codecraft.webmagic.Task;
 import us.codecraft.webmagic.downloader.AbstractDownloader;
+import us.codecraft.webmagic.downloader.HttpClientGenerator;
+import us.codecraft.webmagic.proxy.Proxy;
 import us.codecraft.webmagic.selector.PlainText;
 import us.codecraft.webmagic.utils.HttpConstant;
 import us.codecraft.webmagic.utils.UrlUtils;
-import yaycrawler.common.utils.HttpClientGenerator;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -50,17 +51,17 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
 
     private HttpClientGenerator httpClientGenerator = new HttpClientGenerator();
 
-    private CloseableHttpClient getHttpClient(Site site) {
+    private CloseableHttpClient getHttpClient(Site site, Proxy proxy) {
         if (site == null) {
-            return httpClientGenerator.generateClient();
+            return httpClientGenerator.getClient(null, proxy);
         }
         String domain = site.getDomain();
-        CloseableHttpClient httpClient =  httpClients.get(domain);
+        CloseableHttpClient httpClient = httpClients.get(domain);
         if (httpClient == null) {
             synchronized (this) {
                 httpClient = httpClients.get(domain);
                 if (httpClient == null) {
-                    httpClient = httpClientGenerator.generateClient(site.getUserAgent(),site.getDomain(),site.isUseGzip(),site.getRetryTimes(),null);
+                    httpClient = httpClientGenerator.getClient(site, proxy);
                     httpClients.put(domain, httpClient);
                 }
             }
@@ -94,9 +95,20 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
                 if (headers == null) headers = new HashMap<>();
                 headers.put("Cookie", cookie);
             }
+            HttpHost proxyHost = null;
+            Proxy proxy = null; //TODO
+            if (site.getHttpProxyPool() != null && site.getHttpProxyPool().isEnable()) {
+                proxy = site.getHttpProxyFromPool();
+                proxyHost = proxy.getHttpHost();
+            } else if(site.getHttpProxy()!= null){
+                proxyHost = site.getHttpProxy();
+            }
 
-            HttpUriRequest httpUriRequest = getHttpUriRequest(request, site, headers);
-            httpResponse = getHttpClient(site).execute(httpUriRequest);
+            HttpUriRequest httpUriRequest = getHttpUriRequest(request, site, headers, proxyHost);//���������˴���
+            httpResponse = getHttpClient(site, proxy).execute(httpUriRequest);//getHttpClient�
+
+            //HttpUriRequest httpUriRequest = getHttpUriRequest(request, site, headers);
+            //httpResponse = getHttpClient(site).execute(httpUriRequest);
             statusCode = httpResponse.getStatusLine().getStatusCode();
             request.putExtra(Request.STATUS_CODE, statusCode);
             if (statusAccept(acceptStatCode, statusCode)) {
@@ -104,11 +116,11 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
                 onSuccess(request);
                 return page;
             } else {
-                logger.warn("code error " + statusCode + "\t" + request.getUrl());
+                logger.warn("get page {} error, status code {} ",request.getUrl(),statusCode);
                 return null;
             }
         } catch (IOException e) {
-            logger.warn("download page " + request.getUrl() + " error", e);
+            logger.warn("download page {} error", request.getUrl(), e);
             if (site.getCycleRetryTimes() > 0) {
                 return addToCycleRetry(request, site);
             }
@@ -116,6 +128,10 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
             return null;
         } finally {
             request.putExtra(Request.STATUS_CODE, statusCode);
+            if (site.getHttpProxyPool()!=null && site.getHttpProxyPool().isEnable()) {
+                site.returnHttpProxyToPool((HttpHost) request.getExtra(Request.PROXY), (Integer) request
+                        .getExtra(Request.STATUS_CODE));
+            }
             try {
                 if (httpResponse != null) {
                     //ensure the connection is released back to pool
@@ -141,7 +157,7 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
         return acceptStatCode.contains(statusCode);
     }
 
-    protected HttpUriRequest getHttpUriRequest(Request request, Site site, Map<String, String> headers) {
+    protected HttpUriRequest getHttpUriRequest(Request request, Site site, Map<String, String> headers,HttpHost proxy) {
         RequestBuilder requestBuilder = selectRequestMethod(request).setUri(request.getUrl());
         if (headers != null) {
             for (Map.Entry<String, String> headerEntry : headers.entrySet()) {
@@ -153,20 +169,9 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
                 .setSocketTimeout(site.getTimeOut())
                 .setConnectTimeout(site.getTimeOut())
                 .setCookieSpec(CookieSpecs.BEST_MATCH);
-        if (site.getHttpProxyPool() != null && site.getHttpProxyPool().isEnable()) {
-            HttpHost host = site.getHttpProxyFromPool();
-            requestConfigBuilder.setProxy(host);
-            request.putExtra(Request.PROXY, host);
-        } else if (site.getHttpProxy() != null) {
-            HttpHost host = site.getHttpProxy();
-            requestConfigBuilder.setProxy(host);
-            request.putExtra(Request.PROXY, host);
-        } else {
-
-//            HttpHost httpHost = new HttpHost("127.0.0.1",8888);
-//            requestConfigBuilder.setProxy(httpHost);
-//            request.putExtra(Request.PROXY,httpHost);
-
+        if (proxy !=null) {
+            requestConfigBuilder.setProxy(proxy);
+            request.putExtra(Request.PROXY, proxy);
         }
         requestBuilder.setConfig(requestConfigBuilder.build());
         return requestBuilder.build();
