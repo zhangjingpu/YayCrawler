@@ -9,9 +9,10 @@
 *.ear
 target
 *.iml
-*.eml
 out/
 .idea
+.classpath
+.project
 .settings/
 .myeclipse
 

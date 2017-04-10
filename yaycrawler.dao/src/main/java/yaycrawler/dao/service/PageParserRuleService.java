@@ -81,6 +81,11 @@ public class PageParserRuleService {
 
     @CacheEvict(value = DEMO_CACHE_NAME)
     public boolean addSite(PageSite pageSite) {
+        //增加域名判断
+        PageSite site = siteRepository.findByDomain(pageSite.getDomain());
+        if(site != null) {
+            siteRepository.delete(site);
+        }
         return siteRepository.save(pageSite) != null;
     }
 
@@ -123,7 +128,7 @@ public class PageParserRuleService {
         return regionRepository.save(region) != null;
     }
 
-    @Cacheable(value = DEMO_CACHE_NAME, keyGenerator = "wiselyKeyGenerator")
+    @Cacheable(value = DEMO_CACHE_NAME)
     public PageParseRegion getPageRegionById(String regionId) {
         return regionRepository.findOne(regionId);
     }

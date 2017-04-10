@@ -76,7 +76,8 @@ public class GenericPipeline implements Pipeline {
         Map<String, Object> groupedMap = groupedDataMapList.get(dataType);
         if (groupedMap == null) {
             groupedMap = new HashMap<>();
-            groupedDataMapList.put(dataType, groupedMap);
+            if(org.apache.commons.lang.StringUtils.equalsIgnoreCase(dataType,"autoField") || org.apache.commons.lang.StringUtils.equalsIgnoreCase(dataType,"autoRowField"))
+                groupedDataMapList.put(PersistentDataType.MAP, groupedMap);
         }
         groupedMap.put(regionDataMap.getKey(), regionDataMap.getValue());
     }

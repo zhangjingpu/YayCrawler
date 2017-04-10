@@ -217,7 +217,7 @@ public class ConfigController {
         PageParseRegion regionInDb = pageParseRuleService.getPageRegionById(regionId);
         PageParseRegion region = new PageParseRegion();
         region.setSelectExpression(regionInDb.getSelectExpression());
-
+        region.setDataType(regionInDb.getDataType());
         String ruleType = MapUtils.getString(ruleMap, "ruleType");
         String ruleId = MapUtils.getString(ruleMap, "id", null);
         if ("fieldRule".equals(ruleType)) {
