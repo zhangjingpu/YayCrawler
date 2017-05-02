@@ -142,20 +142,43 @@ public class GenericPageProcessor implements PageProcessor {
         for (Selectable node : nodes) {
             HashedMap childMap = new HashedMap();
             for (FieldParseRule fieldParseRule : fieldParseRuleList) {
-                childMap.put(fieldParseRule.getFieldName(), SelectorExpressionResolver.resolve(request, node, fieldParseRule.getRule()));
+                Object datas = childMap.get(fieldParseRule.getFieldName());
+                if(datas == null) {
+                    datas = SelectorExpressionResolver.resolve(request, node, fieldParseRule.getRule());
+                } else {
+                    List tmp = new ArrayList();
+                    tmp.add(datas);
+                    tmp.add(SelectorExpressionResolver.resolve(request, node, fieldParseRule.getRule()));
+                    datas = tmp;
+                }
+                if((datas == null && "label".equalsIgnoreCase(fieldParseRule.getFieldName()))||(datas == null && childMap.get("label") == null && "value".equalsIgnoreCase(fieldParseRule.getFieldName())))
+                    continue;
+                childMap.put(fieldParseRule.getFieldName(), datas);
             }
             if(StringUtils.equalsIgnoreCase(dataType,"autoField") && MapUtils.getString(childMap,"label") != null && MapUtils.getString(childMap,"value") != null) {
                 try {
                     HashedMap dataMap = null;
                     if(MapUtils.getObject(childMap,"value") instanceof Collection) {
+                        Object labels = MapUtils.getObject(childMap,"label");
                         List<String> values = (ArrayList)MapUtils.getObject(childMap,"value");
                         for (int j = 0; j < values.size(); j++) {
                             dataMap = (HashedMap) resultMap.get(String.valueOf(j));
                             if(dataMap == null) {
                                 dataMap = new HashedMap();
                             }
-                            dataMap.put(PinyinHelper.convertToPinyinString(MapUtils.getString(childMap,"label"),"", PinyinFormat.WITHOUT_TONE),values.get(j));
-                            resultMap.put(String.valueOf(j),dataMap);
+                            if(MapUtils.getObject(childMap,"label") instanceof Collection) {
+                                dataMap = (HashedMap) resultMap.get(String.valueOf(0));
+                                if(dataMap == null) {
+                                    dataMap = new HashedMap();
+                                }
+                                if(((List)labels).get(j) != null) {
+                                    dataMap.put(PinyinHelper.convertToPinyinString(((List) labels).get(j).toString(), "", PinyinFormat.WITHOUT_TONE), values.get(j));
+                                    resultMap.put(String.valueOf(0), dataMap);
+                                }
+                            } else {
+                                dataMap.put(PinyinHelper.convertToPinyinString(MapUtils.getString(childMap,"label"),"", PinyinFormat.WITHOUT_TONE),values.get(j));
+                                resultMap.put(String.valueOf(j),dataMap);
+                            }
                         }
                     } else {
                         resultMap.put(PinyinHelper.convertToPinyinString(MapUtils.getString(childMap,"label"),"", PinyinFormat.WITHOUT_TONE),MapUtils.getString(childMap,"value"));
@@ -184,9 +207,27 @@ public class GenericPageProcessor implements PageProcessor {
                 for (Object child : childs) {
                     resultMap.put(String.valueOf(j++), child);
                 }
+            } else if((StringUtils.equalsIgnoreCase(dataType,"autoField") || StringUtils.equalsIgnoreCase(dataType,"autoRowField"))&& MapUtils.getString(childMap,"label") == null &&  MapUtils.getString(childMap,"value") == null) {
+                resultMap.putAll(childMap);
             }else {
                 resultMap.put(String.valueOf(i++), childMap);
             }
+            if((StringUtils.equalsIgnoreCase(dataType,"autoField") || StringUtils.equalsIgnoreCase(dataType,"autoRowField")) && (MapUtils.getString(childMap,"label") != null &&  MapUtils.getString(childMap,"value") != null)){
+                for (Object o : childMap.entrySet()) {
+                    Map.Entry<String,Object> item = (Map.Entry<String, Object>) o;
+                    if(!(StringUtils.equalsIgnoreCase(item.getKey(),"label") || StringUtils.equalsIgnoreCase(item.getKey(),"value"))){
+                        for (Object o1 : resultMap.values()) {
+                            HashedMap dataMap = (HashedMap)o1;
+                            try {
+                                dataMap.put(PinyinHelper.convertToPinyinString(item.getKey().toLowerCase().toString(),"",PinyinFormat.WITHOUT_TONE),item.getValue());
+                            } catch (PinyinException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+            }
+
         }
         if (nodes.size() > 1 ||StringUtils.equalsIgnoreCase(dataType,"autoField") ||StringUtils.equalsIgnoreCase(dataType,"autoRowField"))
             return resultMap;

@@ -1,6 +1,8 @@
 package yaycrawler.worker.service;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,7 +19,7 @@ import java.util.Map;
  * Created by ucs_yuananyun on 2016/5/23.
  */
 @Component
-public class MusicPersistentService implements IResultPersistentService {
+public class DocumentPersistentService implements IResultPersistentService {
 
     @Value("${ftp.server.url}")
     private String url;
@@ -33,7 +35,6 @@ public class MusicPersistentService implements IResultPersistentService {
      * param data {id:"",srcList:""}
      */
     public boolean saveCrawlerResult(String pageUrl, Map<String, Object> data) {
-        //TODO 下载音乐
         try {
             List<String> srcList = null;
             String id = "";
@@ -46,8 +47,11 @@ public class MusicPersistentService implements IResultPersistentService {
                 for (Object src : regionData.values()) {
                     if (src instanceof List)
                         srcList = (List<String>) src;
-                    else
+                    else if(src instanceof HashedMap) {
+                        srcList.add(MapUtils.getString((HashedMap)src,"src"));
+                    } else {
                         id = String.valueOf(src);
+                    }
                 }
                 if (srcList == null || srcList.isEmpty())
                     continue;
@@ -77,7 +81,7 @@ public class MusicPersistentService implements IResultPersistentService {
 
     @Override
     public String getSupportedDataType() {
-        return PersistentDataType.MUSIC;
+        return PersistentDataType.DOCMUENT;
     }
 
 }
