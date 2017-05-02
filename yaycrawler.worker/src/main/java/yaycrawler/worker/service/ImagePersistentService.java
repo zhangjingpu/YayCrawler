@@ -3,6 +3,7 @@ package yaycrawler.worker.service;
 import com.google.common.io.Files;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections.MapUtils;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -20,6 +21,7 @@ import yaycrawler.spider.persistent.PersistentDataType;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +47,7 @@ public class ImagePersistentService implements IResultPersistentService {
     public boolean saveCrawlerResult(String pageUrl, Map<String, Object> data) {
         //TODO 下载图片
         try {
-            List<String> srcList = null;
+            List<String> srcList = new ArrayList<>();
             String id = "";
             HttpUtil httpUtil = HttpUtil.getInstance();
 //            List<Header> headers = new ArrayList<>();
@@ -56,8 +58,11 @@ public class ImagePersistentService implements IResultPersistentService {
                 for (Object src : regionData.values()) {
                     if (src instanceof List)
                         srcList = (List<String>) src;
-                    else
+                    else if(src instanceof HashedMap) {
+                        srcList.add(MapUtils.getString((HashedMap)src,"src"));
+                    } else {
                         id = String.valueOf(src);
+                    }
                 }
                 if (srcList == null || srcList.isEmpty())
                     continue;

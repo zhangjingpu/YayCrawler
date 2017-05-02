@@ -128,12 +128,12 @@ public class ConfigSpiderService {
                 return finalSite == null ? ConfigSpiderService.this.getSite(request.getUrl()) : finalSite;
             }
         });
-//        if (page != null) {
-//            Map<String, Object> m = new HashMap<>();
-//            m.put("inputTime", System.currentTimeMillis());
-//            m.put("page", page);
-//            pageMap.put(request.getUrl(), m);
-//        }
+        if (page != null) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("inputTime", System.currentTimeMillis());
+            m.put("page", page);
+            pageMap.put(request.getUrl(), m);
+        }
         return page;
     }
 
