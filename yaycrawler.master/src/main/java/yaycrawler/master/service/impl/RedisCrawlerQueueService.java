@@ -27,7 +27,7 @@ import java.util.*;
  * 看需要选择开启 此队列服务
  * Created by yuananyun on 2016/8/7.
  */
-//@Service
+@Service
 public class RedisCrawlerQueueService implements ICrawlerQueueService {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisCrawlerQueueService.class);
