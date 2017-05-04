@@ -171,8 +171,10 @@ public class GenericPageProcessor implements PageProcessor {
                                 if(dataMap == null) {
                                     dataMap = new HashedMap();
                                 }
-                                dataMap.put(PinyinHelper.convertToPinyinString(((List)labels).get(j).toString(),"", PinyinFormat.WITHOUT_TONE),values.get(j));
-                                resultMap.put(String.valueOf(0),dataMap);
+                                if(((List)labels).get(j) != null) {
+                                    dataMap.put(PinyinHelper.convertToPinyinString(((List) labels).get(j).toString(), "", PinyinFormat.WITHOUT_TONE), values.get(j));
+                                    resultMap.put(String.valueOf(0), dataMap);
+                                }
                             } else {
                                 dataMap.put(PinyinHelper.convertToPinyinString(MapUtils.getString(childMap,"label"),"", PinyinFormat.WITHOUT_TONE),values.get(j));
                                 resultMap.put(String.valueOf(j),dataMap);

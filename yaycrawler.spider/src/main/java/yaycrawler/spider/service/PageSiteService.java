@@ -37,7 +37,9 @@ public class PageSiteService {
         site.addHeader("host", domain);
         site.setUserAgent("Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36");
         site.setCharset("utf8");
-
+        //默认重试3次
+        site.setRetryTimes(3);
+        site.setCycleRetryTimes(4);
         PageSite pageSite = siteRepository.findByDomain(domain);
         if (pageSite != null) {
             site.setDomain(pageSite.getDomain());

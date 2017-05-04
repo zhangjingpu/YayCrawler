@@ -1,5 +1,9 @@
 package yaycrawler.common.utils;
 
+import com.github.stuxuhai.jpinyin.PinyinException;
+import com.github.stuxuhai.jpinyin.PinyinFormat;
+import com.github.stuxuhai.jpinyin.PinyinHelper;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
@@ -27,18 +31,30 @@ public class FtpClientUtils {
         FTPClient ftp = new FTPClient();
         try {
             int reply;
+            ftp.setControlEncoding("gbk");
             ftp.connect(url, port);//连接FTP服务器
             //如果采用默认端口，可以使用ftp.connect(url)的方式直接连接FTP服务器
             ftp.login(username, password);//登录
             reply = ftp.getReplyCode();
             if (!FTPReply.isPositiveCompletion(reply)) {
+
                 ftp.disconnect();
                 return success;
             }
             makeDirectory(ftp,path);
             ftp.changeWorkingDirectory(path);
             ftp.setFileType(FTPClient.BINARY_FILE_TYPE);
-            ftp.storeFile(filename, input);
+            ftp.setBufferSize(1024 * 1024 * 10);
+            try {
+                ftp.storeFile(filename, input);
+            } catch (Exception e) {
+                e.printStackTrace();
+                try {
+                    ftp.storeFile(PinyinHelper.convertToPinyinString(filename,"", PinyinFormat.WITHOUT_TONE), input);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            }
 
             input.close();
             ftp.logout();

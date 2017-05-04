@@ -107,7 +107,7 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
                 proxyHost = site.getHttpProxy();
             }
 
-            HttpUriRequest httpUriRequest = getHttpUriRequest(request, site, headers, proxyHost);//���������˴���
+            HttpUriRequest httpUriRequest = getHttpUriRequest(request, site, headers, proxyHost);//
             httpResponse = getHttpClient(site, proxy).execute(httpUriRequest);//getHttpClient�
 
             //HttpUriRequest httpUriRequest = getHttpUriRequest(request, site, headers);
@@ -120,6 +120,9 @@ public class CrawlerHttpClientDownloader extends AbstractDownloader {
                 return page;
             } else {
                 logger.warn("get page {} error, status code {} ",request.getUrl(),statusCode);
+                if (site.getCycleRetryTimes() > 0) {
+                    return addToCycleRetry(request, site);
+                }
                 return null;
             }
         } catch (IOException e) {

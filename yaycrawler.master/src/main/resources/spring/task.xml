@@ -7,7 +7,7 @@
     </bean>
     <bean id="breakedQueueRefreshTask" class="yaycrawler.master.quartz.BreakedQueueRefreshTask">
         <property name="queueService" ref="redisCrawlerQueueService"></property>
-       <!-- <property name="queueService" ref="mysqlQueueService"></property>-->
+        <!--<property name="queueService" ref="mysqlQueueService"></property>-->
         <property name="queueTimeOut" value="${task.queue.timeout:3600000}"></property>
     </bean>
 
@@ -32,7 +32,7 @@
 
     <bean id="breakedQueueRefreshTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
         <property name="jobDetail" ref="refreshBreakedQueueJobDetail"/>
-        <property name="startDelay" value="${task.queue.timeout}"/>
+        <property name="startDelay" value="20000"/>
         <property name="repeatInterval" value="${task.queue.timeout}"/>
     </bean>
 

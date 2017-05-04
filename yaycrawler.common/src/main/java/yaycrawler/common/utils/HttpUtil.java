@@ -2,11 +2,9 @@ package yaycrawler.common.utils;
 
 import com.alibaba.fastjson.JSON;
 import org.apache.http.Header;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -26,6 +24,7 @@ import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.cookie.CookieOrigin;
 import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.cookie.BasicClientCookie;
@@ -61,7 +60,7 @@ public class HttpUtil {
     private LayeredConnectionSocketFactory sslSF;
     private Registry<ConnectionSocketFactory> registry;
     private PoolingHttpClientConnectionManager connManager;
-    private volatile HttpClient client;
+    private volatile CloseableHttpClient client;
     private volatile BasicCookieStore cookieStore;
     public static final String defaultEncoding = "utf-8";
 
@@ -277,8 +276,8 @@ public class HttpUtil {
     private RequestConfig getRequestConfig() {
 //        HttpHost proxy = new HttpHost("127.0.0.1", 8888);
         RequestConfig.Builder build = RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES)//.setProxy(proxy)
-                .setConnectTimeout(3000).setConnectionRequestTimeout(3000)
-                .setSocketTimeout(3000);
+                .setConnectTimeout(30000).setConnectionRequestTimeout(30000)
+                .setSocketTimeout(30000);
         return build.build();
     }
 
