@@ -24,6 +24,21 @@ import org.apache.commons.net.io.CopyStreamListener;
  */
 public final class FTPUtils {
     private final FTPClient ftp = new FTPClient();
+    private static volatile FTPUtils instance;
+
+    private FTPUtils() {
+
+    }
+
+    public static FTPUtils getInstance() {
+        synchronized (HttpUtil.class) {
+            if (FTPUtils.instance == null) {
+                instance = new FTPUtils();
+            }
+            return instance;
+        }
+    }
+
     /**
      *
      * @param hostname
@@ -92,9 +107,12 @@ public final class FTPUtils {
     public void upLoadByFtp(String absSrcFileName, String destDir,
                             String destFileName) throws IOException {
         // 创建并转到工作目录
-        String absDstDir = this.ftp.printWorkingDirectory() + "/" + destDir;
-        absDstDir = absDstDir.replaceAll("//", "/");
-        createDirectory(absDstDir, this.ftp);
+//        String absDstDir = this.ftp.printWorkingDirectory() + "/" + destDir;
+//        absDstDir = absDstDir.replaceAll("//", "/");
+        makeDirectory(ftp,destDir);
+        System.out.println("q************" + ftp.printWorkingDirectory() + "*******");
+        ftp.changeWorkingDirectory(destDir);
+        System.out.println("h************" + ftp.printWorkingDirectory() + "*******");
         // 设置各种属性
         this.ftp.setFileType(FTP.BINARY_FILE_TYPE);
         // Use passive mode as default because most of us are behind firewalls these days.
@@ -180,6 +198,15 @@ public final class FTPUtils {
             System.err.println("Download file fail.");
             this.ftp.logout();
             this.ftp.disconnect();
+        }
+    }
+
+    private static void makeDirectory(FTPClient ftpClient,String path) throws IOException {
+        String[] dsts = path.split("/");
+        StringBuffer temp = new StringBuffer();
+        for (String dst:dsts) {
+            temp.append("/").append(dst);
+            ftpClient.makeDirectory(temp.toString());
         }
     }
 

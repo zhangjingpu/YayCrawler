@@ -1,5 +1,7 @@
 package yaycrawler.worker.service;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections.MapUtils;
@@ -9,9 +11,11 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import us.codecraft.webmagic.utils.UrlUtils;
+import yaycrawler.common.model.CrawlerRequest;
 import yaycrawler.common.utils.FtpClientUtils;
 import yaycrawler.common.utils.HttpUtil;
 import yaycrawler.common.utils.HttpUtils;
@@ -40,6 +44,9 @@ public class ImagePersistentService implements IResultPersistentService {
     @Value("${ftp.server.password}")
     private String password;
 
+    @Autowired(required = false)
+    private DownloadService downloadService;
+
     @Override
     /**
      * param data {id:"",srcList:""}
@@ -49,7 +56,7 @@ public class ImagePersistentService implements IResultPersistentService {
         try {
             List<String> srcList = new ArrayList<>();
             String id = "";
-            HttpUtil httpUtil = HttpUtil.getInstance();
+            //HttpUtil httpUtil = HttpUtil.getInstance();
 //            List<Header> headers = new ArrayList<>();
 //            headers.add(new BasicHeader("",""));
             for (Object o : data.values()) {
@@ -64,9 +71,17 @@ public class ImagePersistentService implements IResultPersistentService {
                         id = String.valueOf(src);
                     }
                 }
-                if (srcList == null || srcList.isEmpty())
-                    continue;
-                for (String src : srcList) {
+                CrawlerRequest crawlerRequest = new CrawlerRequest();
+                crawlerRequest.setDomain(UrlUtils.getDomain(pageUrl));
+                crawlerRequest.setHashCode(DigestUtils.sha1Hex(pageUrl));
+                crawlerRequest.setMethod("get");
+                crawlerRequest.setUrl(pageUrl + "?$download=jpg");
+                crawlerRequest.setExtendMap(ImmutableMap.of("$DOWNLOAD",".jpg","$src",srcList));
+                downloadService.startCrawlerDownload(Lists.newArrayList(crawlerRequest));
+
+//                if (srcList == null || srcList.isEmpty())
+//                    continue;
+//                for (String src : srcList) {
 //                    byte[] bytes = EntityUtils.toByteArray(httpUtil.doGet(src,null,headers).getEntity());
 //                    String imgName = StringUtils.substringAfterLast(src,"/");
 //                    if (!StringUtils.contains(imgName,".")) {
@@ -75,13 +90,13 @@ public class ImagePersistentService implements IResultPersistentService {
 //                    File img = new File(imagePath + "/" + id +  "/" + imgName);
 //                    Files.createParentDirs(img);
 //                    Files.write(bytes,img);
-                    String imgName = StringUtils.substringAfterLast(src,"/");
-                    if (!StringUtils.contains(imgName,".")) {
-                        imgName = imgName + ".jpg";
-                    }
-                    String path = UrlUtils.getDomain(pageUrl) + "/" + DigestUtils.sha1Hex(pageUrl) + "/" + id;
-                    FtpClientUtils.uploadFile(url,port,username,password,path,imgName,httpUtil.doGetForStream(src,null));
-                }
+//                    String imgName = StringUtils.substringAfterLast(src,"/");
+//                    if (!StringUtils.contains(imgName,".")) {
+//                        imgName = imgName + ".jpg";
+//                    }
+//                    String path = UrlUtils.getDomain(pageUrl) + "/" + DigestUtils.sha1Hex(pageUrl) + "/" + id;
+//                    FtpClientUtils.uploadFile(url,port,username,password,path,imgName,httpUtil.doGetForStream(src,null));
+//                }
             }
         } catch (Exception e) {
             e.printStackTrace();

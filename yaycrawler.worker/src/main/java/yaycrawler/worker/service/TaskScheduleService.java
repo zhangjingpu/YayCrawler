@@ -1,5 +1,7 @@
 package yaycrawler.worker.service;
 
+import com.google.common.collect.Lists;
+import org.apache.commons.collections.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +58,9 @@ public class TaskScheduleService {
 
     private Map<String, YaySpider> spiderMap = new HashMap<>();
 
+    @Autowired(required = false)
+    private DownloadService downloadService;
+
     public TaskScheduleService() {
     }
 
@@ -80,9 +85,13 @@ public class TaskScheduleService {
     public void doSchedule(List<CrawlerRequest> taskList) {
         try {
             logger.info("worker接收到{}个任务", taskList.size());
+            List<CrawlerRequest> downList = Lists.newArrayList();
             for (CrawlerRequest crawlerRequest : taskList) {
                 if(crawlerRequest==null) continue;
                 //如果查找不到与url相关的解析规则，则该任务不能执行
+                if(MapUtils.getString(crawlerRequest.getExtendMap(),"$DOWNLOAD") != null) {
+                    downList.add(crawlerRequest);
+                }
                 if (pageParserRuleService.findOnePageInfoByRgx(crawlerRequest.getUrl()) == null) {
                     logger.info("查找不到与{}匹配的解析规则，该任务失败！", crawlerRequest.getUrl());
                     pageParseListener.onError(convertCrawlerRequestToSpiderRequest(crawlerRequest), "查找不到匹配的页面解析规则！");
@@ -95,6 +104,9 @@ public class TaskScheduleService {
                 spider.addRequest(convertCrawlerRequestToSpiderRequest(crawlerRequest));
                 if (spider.getStatus() != Spider.Status.Running)
                     spider.runAsync();
+            }
+            if(downList.size() > 0 ) {
+                downloadService.startCrawlerDownload(downList);
             }
             logger.info("worker任务分配完成！");
         } catch (Exception ex) {

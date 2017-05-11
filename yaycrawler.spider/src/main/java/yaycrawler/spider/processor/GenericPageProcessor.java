@@ -151,7 +151,7 @@ public class GenericPageProcessor implements PageProcessor {
                     tmp.add(SelectorExpressionResolver.resolve(request, node, fieldParseRule.getRule()));
                     datas = tmp;
                 }
-                if((datas == null && "label".equalsIgnoreCase(fieldParseRule.getFieldName()))||(datas == null && childMap.get("label") == null && "value".equalsIgnoreCase(fieldParseRule.getFieldName())))
+                if((datas == null && "label".equalsIgnoreCase(fieldParseRule.getFieldName()))||(datas == null && childMap.get("label") == null && "value".equalsIgnoreCase(fieldParseRule.getFieldName()))||(fieldParseRuleList.size() == 1 && datas.toString() == null && !"label".equalsIgnoreCase(fieldParseRule.getFieldName()) && ! "value".equalsIgnoreCase(fieldParseRule.getFieldName())))
                     continue;
                 childMap.put(fieldParseRule.getFieldName(), datas);
             }
@@ -230,11 +230,13 @@ public class GenericPageProcessor implements PageProcessor {
                     Map.Entry<String,Object> item = (Map.Entry<String, Object>) o;
                     if(!(StringUtils.equalsIgnoreCase(item.getKey(),"label") || StringUtils.equalsIgnoreCase(item.getKey(),"value"))){
                         for (Object o1 : resultMap.values()) {
-                            HashedMap dataMap = (HashedMap)o1;
-                            try {
-                                dataMap.put(PinyinHelper.convertToPinyinString(item.getKey().toLowerCase().toString(),"",PinyinFormat.WITHOUT_TONE),item.getValue());
-                            } catch (PinyinException e) {
-                                e.printStackTrace();
+                            if (o1 instanceof HashedMap) {
+                                HashedMap dataMap = (HashedMap) o1;
+                                try {
+                                    dataMap.put(PinyinHelper.convertToPinyinString(item.getKey().toLowerCase().toString(), "", PinyinFormat.WITHOUT_TONE), item.getValue());
+                                } catch (PinyinException e) {
+                                    e.printStackTrace();
+                                }
                             }
                         }
                     }
