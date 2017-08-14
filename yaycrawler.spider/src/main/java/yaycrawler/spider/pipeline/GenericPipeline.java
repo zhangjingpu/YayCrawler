@@ -73,6 +73,8 @@ public class GenericPipeline implements Pipeline {
 
     private void addToDataTypeGroup(Map<String, Map<String, Object>> groupedDataMapList, String dataType, Map.Entry<String, Object> regionDataMap) {
         if (StringUtils.isBlank(dataType)) return;
+        if (org.apache.commons.lang.StringUtils.equalsIgnoreCase(dataType, "autoField") || org.apache.commons.lang.StringUtils.equalsIgnoreCase(dataType, "autoRowField"))
+            dataType = PersistentDataType.MAP;
         Map<String, Object> groupedMap = groupedDataMapList.get(dataType);
         if (groupedMap == null) {
             groupedMap = new HashMap<>();

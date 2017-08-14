@@ -21,4 +21,14 @@ public class PersistentDataType {
      * 音乐
      */
     public static String MUSIC = "MUSIC";
+
+    /**
+     * Map格式的页面数据（竖形）
+     */
+    public final static String autoRowField = "autoRowField";
+
+    /**
+     * Map格式的页面数据(横形)
+     */
+    public final static String autoField = "autoField";
 }

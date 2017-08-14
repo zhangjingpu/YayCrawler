@@ -7,25 +7,25 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.message.BasicHeader;
+import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import us.codecraft.webmagic.Request;
 import us.codecraft.webmagic.utils.UrlUtils;
 import yaycrawler.common.model.CrawlerRequest;
+import yaycrawler.common.utils.FTPUtils;
 import yaycrawler.common.utils.FtpClientUtils;
+import yaycrawler.common.utils.FtpUtil;
 import yaycrawler.common.utils.HttpUtil;
-import yaycrawler.common.utils.HttpUtils;
+import yaycrawler.spider.listener.IPageParseListener;
 import yaycrawler.spider.persistent.IResultPersistentService;
 import yaycrawler.spider.persistent.PersistentDataType;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +33,7 @@ import java.util.Map;
  * Created by ucs_yuananyun on 2016/5/23.
  */
 @Component
-public class ImagePersistentService implements IResultPersistentService {
+public class DocumentPersistentService implements IResultPersistentService {
 
     @Value("${ftp.server.url}")
     private String url;
@@ -44,6 +44,14 @@ public class ImagePersistentService implements IResultPersistentService {
     @Value("${ftp.server.password}")
     private String password;
 
+    @Value("${ftp.server.path}")
+    private String ftpPath;
+
+    private FTPUtils ftpUtil;
+
+    @Autowired(required = false)
+    private IPageParseListener pageParseListener;
+
     @Autowired(required = false)
     private DownloadService downloadService;
 
@@ -52,7 +60,7 @@ public class ImagePersistentService implements IResultPersistentService {
      * param data {id:"",srcList:""}
      */
     public boolean saveCrawlerResult(String pageUrl, Map<String, Object> data) {
-        //TODO 下载图片
+        //List<String> childRequestList = new LinkedList<>();
         try {
             List<String> srcList = new ArrayList<>();
             String id = "";
@@ -75,39 +83,59 @@ public class ImagePersistentService implements IResultPersistentService {
                 crawlerRequest.setDomain(UrlUtils.getDomain(pageUrl));
                 crawlerRequest.setHashCode(DigestUtils.sha1Hex(pageUrl));
                 crawlerRequest.setMethod("get");
-                crawlerRequest.setUrl(pageUrl + "?$download=jpg");
-                crawlerRequest.setExtendMap(ImmutableMap.of("$DOWNLOAD",".jpg","$src",srcList));
+                crawlerRequest.setUrl(pageUrl + "?$download=pdf");
+                crawlerRequest.setExtendMap(ImmutableMap.of("$DOWNLOAD",".pdf","$src",srcList));
                 downloadService.startCrawlerDownload(Lists.newArrayList(crawlerRequest));
-
 //                if (srcList == null || srcList.isEmpty())
 //                    continue;
-//                for (String src : srcList) {
-//                    byte[] bytes = EntityUtils.toByteArray(httpUtil.doGet(src,null,headers).getEntity());
-//                    String imgName = StringUtils.substringAfterLast(src,"/");
-//                    if (!StringUtils.contains(imgName,".")) {
-//                        imgName = imgName + ".jpg";
-//                    }
-//                    File img = new File(imagePath + "/" + id +  "/" + imgName);
-//                    Files.createParentDirs(img);
-//                    Files.write(bytes,img);
-//                    String imgName = StringUtils.substringAfterLast(src,"/");
-//                    if (!StringUtils.contains(imgName,".")) {
-//                        imgName = imgName + ".jpg";
-//                    }
-//                    String path = UrlUtils.getDomain(pageUrl) + "/" + DigestUtils.sha1Hex(pageUrl) + "/" + id;
-//                    FtpClientUtils.uploadFile(url,port,username,password,path,imgName,httpUtil.doGetForStream(src,null));
+//                else{
+//                    ftpUtil = new FTPUtils();
+//                    ftpUtil.connect(url, port, username, password);
 //                }
+//
+//                for (String src : srcList) {
+//                    HttpResponse response =  httpUtil.doGet(src,null,null);
+//                    if(response.getStatusLine().getStatusCode() != 200) {
+//                        childRequestList.add(src);
+//                        continue;
+//                    }
+//
+//                    byte[] bytes = EntityUtils.toByteArray(response.getEntity());
+//                    String documentName = StringUtils.substringAfterLast(src,"/");
+//                    if (!StringUtils.contains(documentName,".")) {
+//                        documentName = documentName + ".pdf";
+//                    }
+//                    File document = new File(ftpPath + "/" + documentName);
+//                    Files.createParentDirs(document);
+//                    Files.write(bytes,document);
+//
+//                    String path = UrlUtils.getDomain(pageUrl) + "/" + DigestUtils.sha1Hex(pageUrl) + "/" + id;
+//                    //上传文件
+//                    ftpUtil.upLoadByFtp(ftpPath + "/" + documentName, path, documentName);
+//                    document.delete();
+//                }
+//                ftpUtil.disconnect();
             }
         } catch (Exception e) {
             e.printStackTrace();
             return false;
+        } finally {
+//            if(childRequestList.size() > 0) {
+//                CrawlerRequest crawlerRequest = new CrawlerRequest();
+//                crawlerRequest.setDomain(UrlUtils.getDomain(pageUrl));
+//                crawlerRequest.setHashCode(DigestUtils.sha1Hex(pageUrl));
+//                crawlerRequest.setMethod("get");
+//                crawlerRequest.setUrl(pageUrl + "?$download=pdf");
+//                crawlerRequest.setExtendMap(ImmutableMap.of("$DOWNLOAD",".pdf","$src",childRequestList));
+//                pageParseListener.onSuccess(new Request(pageUrl), Lists.newArrayList(crawlerRequest));
+//            }
         }
         return true;
     }
 
     @Override
     public String getSupportedDataType() {
-        return PersistentDataType.IMAGE;
+        return PersistentDataType.DOCMUENT;
     }
 
 }

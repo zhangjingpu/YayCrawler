@@ -10,6 +10,8 @@ import us.codecraft.webmagic.selector.Json;
 import us.codecraft.webmagic.selector.PlainText;
 import us.codecraft.webmagic.selector.Selectable;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,9 +51,31 @@ public class SelectorExpressionResolver {
                     paramArray = new String[1];
                     paramArray[0] = param;
                 }
-//                logger.info("开始执行函数:{},参数为:{}", methodName, JSON.toJSONString(paramArray));
-                localObject = execute(request, localObject, methodName, paramArray);
-//                logger.info("函数:{} 执行成功，结果为:{}\r\n", methodName, JSON.toJSONString(localObject));
+                if (localObject instanceof Collection) {
+                    Collection itemCollection = (Collection) localObject;
+                    List datas = new ArrayList();
+                    for (Object item : itemCollection) {
+                        if (item instanceof Selectable)
+                            datas.add(resolve(request, (Selectable) item, invokeStr));
+                        else {
+                            Object object = execute(request, localObject, methodName, paramArray);
+                            if (object instanceof Collection) {
+                                Collection tmps = (Collection)object;
+                                for (Object tmp:tmps) {
+                                    datas.add(tmp);
+                                }
+                            } else {
+                                datas.add(execute(request, localObject, methodName, paramArray));
+                            }
+                        }
+
+                    }
+                    if (datas.size() > 0)
+                        localObject = datas;
+                } else {
+                    localObject = execute(request, localObject, methodName, paramArray);
+                }
+
             }
         }
 //        logger.info("表达式{}解析完成", expression);
@@ -71,6 +95,8 @@ public class SelectorExpressionResolver {
                 p = p.substring(1, p.length());
             if (p.endsWith("\""))
                 p = p.substring(0, p.length() - 1);
+            if (p.equals("\\$\\"))
+                p = localObject.toString();
             params[i] = p;
         }
         try {
@@ -93,15 +119,22 @@ public class SelectorExpressionResolver {
                     url = ParamResolver.resolverReplaceRequest(request, url, localObject);
                 return url;
             }
-            //应该有四个参数（template,varName,start,end)
-            //
+            //应该有四个参数或五个参数（template,varName,start,end,step)
+            //step是步长
             if ("paging".equals(lowerMethodName)) {
                 List<String> dl = new LinkedList<>();
                 String template = String.valueOf(params[0]);
                 String varName = String.valueOf(params[1]);
                 int start = Integer.parseInt((String) params[2]);
                 int end = Integer.parseInt((String) params[3]);
-                for (int i = start; i <= end; i++) {
+                if (!request.getUrl().equalsIgnoreCase(template.replace(varName + "=?", varName + "=" + start))) {
+                    return dl;
+                }
+                int j = 1;
+                if (params.length == 5) {
+                    j = Integer.parseInt(params[4]);
+                }
+                for (int i = start + 1; i <= end; i = i + j) {
                     dl.add(template.replace(varName + "=?", varName + "=" + i));
                 }
                 return dl;
@@ -159,17 +192,86 @@ public class SelectorExpressionResolver {
                 return itemList;
             } else return String.valueOf(localObject) + suffixValue;
         }
+        /**
+         * 自定义数组解析
+         */
 
+        if ("split".equals(lowerMethodName)) {
+            if (localObject instanceof Collection) {
+                Collection itemCollection = (Collection) localObject;
+                if (itemCollection.size() == 0) return localObject;
+                List<String> itemList = new LinkedList<>();
+                for (Object o : itemCollection) {
+                    itemList.addAll(split(o, params));
+                }
+                return new PlainText(itemList);
+            } else {
+                return new PlainText(split(localObject, params));
+            }
+        }
+
+        /**
+         * 加法处理函数：Add
+         */
+        if ("add".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(String.valueOf(localObject));
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.add(num2).toString();
+            if (params.length == 2)
+                return num1.add(num2).toString();
+            if (params.length == 3)
+                return num1.add(num2).toString();
+        }
+        /**
+         * 除法处理函数：divide
+         */
+        if ("divide".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(String.valueOf(localObject));
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.divide(num2).toString();
+            if (params.length == 2)
+                return num1.divide(num2, Integer.parseInt(params[1])).toString();
+            if (params.length == 3)
+                return num1.divide(num2, Integer.parseInt(params[1]), Integer.parseInt(params[2])).toString();
+        }
+        /**
+         * 减法处理函数：subtract
+         */
+        if ("subtract".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(String.valueOf(localObject));
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.subtract(num2).toString();
+            if (params.length == 2)
+                return num1.subtract(num2).toString();
+            if (params.length == 3)
+                return num1.subtract(num2).toString();
+        }
+        /**
+         * 乘法处理函数：multiply
+         */
+        if ("multiply".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(String.valueOf(localObject));
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.multiply(num2).toString();
+            if (params.length == 2)
+                return num1.multiply(num2).toString();
+            if (params.length == 3)
+                return num1.multiply(num2).toString();
+        }
         return localObject;
     }
 
-    private static List split(Object localObject,String[] params) {
+    private static List split(Object localObject, String[] params) {
         String separator = params[0];
         String[] tmps = String.valueOf(localObject).split(separator);
         int count = 0;
         List itemList = Lists.newArrayList();
         for (String tmp : tmps) {
-            if (params.length > 1 && tmps.length >Integer.parseInt(params[1])) {
+            if (params.length > 1 && tmps.length > Integer.parseInt(params[1])) {
                 count = Integer.parseInt(params[1]);
                 itemList.add(tmps[count]);
                 break;
@@ -234,14 +336,66 @@ public class SelectorExpressionResolver {
                 if (itemCollection.size() == 0) return selectable;
                 List<String> itemList = new LinkedList<>();
                 for (Object o : itemCollection) {
-                    itemList.addAll(split(o,params));
+                    itemList.addAll(split(o, params));
                 }
                 return new PlainText(itemList);
             } else {
-                return new PlainText(split(selectable,params));
+                return new PlainText(split(selectable, params));
             }
         }
 
+        /**
+         * 加法处理函数：Add
+         */
+        if ("add".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(selectable.get());
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.add(num2).toString();
+            if (params.length == 2)
+                return num1.add(num2).toString();
+            if (params.length == 3)
+                return num1.add(num2).toString();
+        }
+        /**
+         * 除法处理函数：divide
+         */
+        if ("divide".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(selectable.get());
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.divide(num2).toString();
+            if (params.length == 2)
+                return num1.divide(num2, Integer.parseInt(params[1])).toString();
+            if (params.length == 3)
+                return num1.divide(num2, Integer.parseInt(params[1]), Integer.parseInt(params[2])).toString();
+        }
+        /**
+         * 减法处理函数：subtract
+         */
+        if ("subtract".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(selectable.get());
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.subtract(num2).toString();
+            if (params.length == 2)
+                return num1.subtract(num2).toString();
+            if (params.length == 3)
+                return num1.subtract(num2).toString();
+        }
+        /**
+         * 乘法处理函数：multiply
+         */
+        if ("multiply".equals(lowerMethodName)) {
+            BigDecimal num1 = new BigDecimal(selectable.get());
+            BigDecimal num2 = new BigDecimal(params[0]);
+            if (params.length == 1)
+                return num1.multiply(num2).toString();
+            if (params.length == 2)
+                return num1.multiply(num2).toString();
+            if (params.length == 3)
+                return num1.multiply(num2).toString();
+        }
         return selectable;
     }
 

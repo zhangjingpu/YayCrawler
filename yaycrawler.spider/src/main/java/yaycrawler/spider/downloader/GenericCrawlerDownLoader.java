@@ -68,8 +68,10 @@ public class GenericCrawlerDownLoader extends AbstractDownloader {
             }
         }
         Page page = !isJsRendering ? httpClientDownloader.download(request, task, cookie) : mockDonwnloader.download(request, task, cookie);
-        if (!isJsRendering && (!"post".equalsIgnoreCase(request.getMethod())&&page != null) && redirectPattern.matcher(page.getRawText()).find())
+        if (!isJsRendering && (!"post".equalsIgnoreCase(request.getMethod())&&page != null) && page.getRawText() != null && redirectPattern.matcher(page.getRawText()).find())
             page = mockDonwnloader.download(request, task, cookie);
+        if(page != null && page.getRawText() == null)
+            return null;
         return page;
     }
 

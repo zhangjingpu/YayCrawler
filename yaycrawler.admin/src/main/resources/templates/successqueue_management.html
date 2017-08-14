@@ -52,25 +52,25 @@
             //初始化Table
             oTableInit.Init = function () {
                 $('#tb_success').bootstrapTable($.extend(global.bootstrapTableOptions, {
-                            url: global.contextPath + '/queryQueueByName?name=' + queue,         //请求后台的URL（*）
-                            method: 'get',                      //请求方式（*）
-                            detailView: false,                   //是否显示父子表
-                            columns: [
-                                {
-                                    field: 'url',
-                                    title: '请求URL'
-                                },
-                                {
-                                    field: 'method',
-                                    title: '请求方法'
-                                },
-                                {
-                                    field: 'data',
-                                    title: '请求参数',
-                                    formatter: function (value, row, index) {
-                                        return JSON.stringify(row.data);
-                                    }
-                                },
+                        url: global.contextPath + '/queryQueueByName?name=' + queue,         //请求后台的URL（*）
+                        method: 'get',                      //请求方式（*）
+                        detailView: false,                   //是否显示父子表
+                        columns: [
+                            {
+                                field: 'url',
+                                title: '请求URL'
+                            },
+                            {
+                                field: 'method',
+                                title: '请求方法'
+                            },
+                            {
+                                field: 'data',
+                                title: '请求参数',
+                                formatter: function (value, row, index) {
+                                    return JSON.stringify(row.data);
+                                }
+                            },
 //                                {
 //                                    field: 'workerId',
 //                                    title: '处理的Worker编号',
@@ -78,69 +78,76 @@
 //                                        return row.extendMap.workId;
 //                                    }
 //                                },
-                                {
-                                    field: 'startTime',
-                                    title: '任务完成时间',
-                                    formatter: function (value, row, index) {
-                                        var timestamp = row.extendMap.startTime;
-                                        var d = new Date(timestamp);    //根据时间戳生成的时间对象
-                                        var date = (d.getFullYear()) + "-" +
-                                                (d.getMonth() + 1) + "-" +
-                                                (d.getDate()) + " " +
-                                                (d.getHours()) + ":" +
-                                                (d.getMinutes()) + ":" +
-                                                (d.getSeconds());
-                                        return date;
-                                    }
+                            {
+                                field: 'startTime',
+                                title: '任务完成时间',
+                                formatter: function (value, row, index) {
+                                    var timestamp = row.extendMap.startTime;
+                                    var d = new Date(timestamp);    //根据时间戳生成的时间对象
+                                    var date = (d.getFullYear()) + "-" +
+                                        (d.getMonth() + 1) + "-" +
+                                        (d.getDate()) + " " +
+                                        (d.getHours()) + ":" +
+                                        (d.getMinutes()) + ":" +
+                                        (d.getSeconds());
+                                    return date;
+                                }
+                            },
+                            {
+                                field: 'action',
+                                title: '操作',
+                                formatter: function (value, row, index) {
+                                    return [
+                                        '<a  href="javascript:void(0)" class="viewResult btn btn-sm green" title="查看结果">',
+                                        '<i class="fa fa-plus">查看结果</i>',
+                                        '</a>'
+                                    ].join('');
                                 },
-                                {
-                                    field: 'action',
-                                    title: '操作',
-                                    formatter: function (value, row, index) {
-                                        return [
-                                            '<a  href="javascript:void(0)" class="viewResult btn btn-sm green" title="查看结果">',
-                                            '<i class="fa fa-plus">查看结果</i>',
-                                            '</a>'
-                                        ].join('');
-                                    },
-                                    events: {
-                                        'click .viewResult': function (e, value, row, index) {
-                                            $("#modalLabel").html("查看爬取结果");
-                                            $("#ta_result").val("");
-                                            var data = {pageUrl: row.url, taskId: row.hashCode};
-                                            $.ajax({
-                                                type: "Post",
-                                                cache: false,
-                                                contentType: "application/json",
-                                                url: global.contextPath + "/viewCrawlerResult?random=" + Math.random(),
-                                                data: JSON.stringify(data),
-                                                dataType: 'json',
-                                                async: false,
-                                                success: function (result) {     //回调函数，result，返回值
-                                                    debugger
-                                                    var resultReq = JSON.parse(row.extendMap.extraInfo);
-                                                    if (resultReq!= null && resultReq.crawlerRequestList.length > 0) {
-                                                        result.crawlerRequestList = resultReq.crawlerRequestList;
-                                                    }
+                                events: {
+                                    'click .viewResult': function (e, value, row, index) {
+                                        $("#modalLabel").html("查看爬取结果");
+                                        $("#ta_result").val("");
+                                        var data = {pageUrl: row.url, taskId: row.hashCode};
+                                        $.ajax({
+                                            type: "Post",
+                                            cache: false,
+                                            contentType: "application/json",
+                                            url: global.contextPath + "/viewCrawlerResult?random=" + Math.random(),
+                                            data: JSON.stringify(data),
+                                            dataType: 'json',
+                                            async: false,
+                                            success: function (result) {     //回调函数，result，返回值
+                                                debugger
+                                                var resultReq = JSON.parse(row.extendMap.extraInfo);
+                                                if (resultReq != null && resultReq.crawlerRequestList.length > 0) {
+                                                    result.crawlerRequestList = resultReq.crawlerRequestList;
+                                                }
+                                                $("#ta_result").val(JSON.stringify(result, null, "\t"));
+                                            },
+                                            error: function (msg) {
+                                                debugger
+                                                var result = {};
+                                                var resultReq = JSON.parse(row.extendMap.extraInfo);
+                                                if (resultReq != null && resultReq.crawlerRequestList.length > 0) {
+                                                    result.crawlerRequestList = resultReq.crawlerRequestList;
                                                     $("#ta_result").val(JSON.stringify(result, null, "\t"));
-                                                },
-                                                error: function (msg) {
-                                                    debugger
+                                                } else {
                                                     $("#ta_result").val("查询出现异常！");
+                                                }
 //                                                    var resultReq = row.extendMap.result;
 //                                                    if (resultReq.crawlerRequestList.length > 0) {
 //                                                        $("#ta_result").val(JSON.stringify(resultReq, null, "\t"));
 //                                                    }
-                                                }
-                                            });
+                                            }
+                                        });
 
-                                            $('#divModal').modal({
-                                                keyboard: false
-                                            });
-                                        }
+                                        $('#divModal').modal({
+                                            keyboard: false
+                                        });
                                     }
-                                }]
-                        }
+                                }
+                            }]
+                    }
                 ));
             };
             return oTableInit;
